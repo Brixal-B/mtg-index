@@ -13,7 +13,8 @@ const DEFAULT_SETTINGS: UserPreferences = {
   showFoilPrices: false,
   defaultCondition: 'near_mint',
   priceAlerts: [],
-  dashboardLayout: ['overview', 'performance', 'holdings', 'trends'],
+  dashboardLayout: ['portfolio-overview', 'top-performers', 'price-alerts', 'market-trends'],
+  theme: 'dark',
 };
 
 // SSR-safe localStorage check

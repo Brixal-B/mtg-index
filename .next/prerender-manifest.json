@@ -1,1 +1,11 @@
-{"version":4,"routes":{"/cards":{"experimentalBypassFor":[{"type":"header","key":"Next-Action"},{"type":"header","key":"content-type","value":"multipart/form-data;.*"}],"initialRevalidateSeconds":false,"srcRoute":"/cards","dataRoute":"/cards.rsc"},"/":{"experimentalBypassFor":[{"type":"header","key":"Next-Action"},{"type":"header","key":"content-type","value":"multipart/form-data;.*"}],"initialRevalidateSeconds":false,"srcRoute":"/","dataRoute":"/index.rsc"},"/portfolio":{"experimentalBypassFor":[{"type":"header","key":"Next-Action"},{"type":"header","key":"content-type","value":"multipart/form-data;.*"}],"initialRevalidateSeconds":false,"srcRoute":"/portfolio","dataRoute":"/portfolio.rsc"},"/analytics":{"experimentalBypassFor":[{"type":"header","key":"Next-Action"},{"type":"header","key":"content-type","value":"multipart/form-data;.*"}],"initialRevalidateSeconds":false,"srcRoute":"/analytics","dataRoute":"/analytics.rsc"},"/admin":{"experimentalBypassFor":[{"type":"header","key":"Next-Action"},{"type":"header","key":"content-type","value":"multipart/form-data;.*"}],"initialRevalidateSeconds":false,"srcRoute":"/admin","dataRoute":"/admin.rsc"}},"dynamicRoutes":{},"notFoundRoutes":[],"preview":{"previewModeId":"255ab796b5f3ecdc3f2c7d5465fee1f7","previewModeSigningKey":"3300760b94feaa67354fa4b1506b4dff823faa24fe4680087e7243370db6fd3a","previewModeEncryptionKey":"8849abebf358e945af535c852254029e7383f18afe597d68b428a0d8b3cedcfa"}}
+{
+  "version": 4,
+  "routes": {},
+  "dynamicRoutes": {},
+  "notFoundRoutes": [],
+  "preview": {
+    "previewModeId": "986099a981af005aa09b82d25db9ac75",
+    "previewModeSigningKey": "f866bd4f3dd75669277b454827fd944d306fbb7a7f145f2ea98c566abb5a662f",
+    "previewModeEncryptionKey": "1317119a66db7c803b3273b91ef1c2ef5afbacdb0f720f89ec190e2280b63c4b"
+  }
+}
