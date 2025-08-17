@@ -12,10 +12,14 @@ import {
   Download,
   Upload,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { UserPreferences, PriceAlert } from '@/lib/types';
 import { getPreferences, savePreferences } from '@/lib/utils/localStorage';
+import { useTheme } from '@/lib/contexts/ThemeContext';
 import { SettingsSection } from './components/SettingsSection';
 import { SettingsField } from './components/SettingsField';
 import { ToggleSwitch } from './components/ToggleSwitch';
@@ -58,6 +62,7 @@ export default function SettingsPage() {
           defaultCondition: 'near_mint',
           priceAlerts: [],
           dashboardLayout: ['portfolio', 'analytics', 'cards', 'admin'],
+          theme: 'dark',
         };
         setPreferences(defaultPreferences);
       } finally {
@@ -103,6 +108,7 @@ export default function SettingsPage() {
       defaultCondition: 'near_mint',
       priceAlerts: [],
       dashboardLayout: ['portfolio', 'analytics', 'cards', 'admin'],
+      theme: 'dark',
     };
     
     setPreferences(defaultPreferences);
@@ -282,12 +288,64 @@ function AppearanceSettings({
   preferences: UserPreferences;
   onPreferenceChange: (key: keyof UserPreferences, value: any) => void;
 }) {
+  const { theme, setTheme, actualTheme } = useTheme();
+
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme);
+    onPreferenceChange('theme', newTheme);
+  };
+
+  const themeOptions = [
+    { value: 'light', label: 'Light', icon: Sun, description: 'Light theme' },
+    { value: 'dark', label: 'Dark', icon: Moon, description: 'Dark theme' },
+    { value: 'system', label: 'System', icon: Monitor, description: 'Follow system preference' },
+  ] as const;
+
   return (
     <SettingsSection 
       title="Appearance" 
       description="Customize the look and layout of your dashboard."
     >
       <div className="space-y-6">
+        {/* Theme Settings */}
+        <SettingsField
+          label="Theme"
+          description="Choose your preferred color theme for the application."
+        >
+          <div className="grid grid-cols-3 gap-3">
+            {themeOptions.map((option) => {
+              const Icon = option.icon;
+              const isSelected = (preferences.theme || theme) === option.value;
+              
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => handleThemeChange(option.value)}
+                  className={`
+                    relative flex flex-col items-center p-4 rounded-lg border-2 transition-all
+                    ${isSelected 
+                      ? 'border-primary bg-primary/10 text-primary' 
+                      : 'border-border bg-card text-muted-foreground hover:text-foreground hover:bg-accent'
+                    }
+                  `}
+                >
+                  <Icon className="h-6 w-6 mb-2" />
+                  <span className="text-sm font-medium">{option.label}</span>
+                  <span className="text-xs opacity-75 mt-1">{option.description}</span>
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {theme === 'system' && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Currently using {actualTheme} mode (system preference)
+            </p>
+          )}
+        </SettingsField>
+
         {/* Dashboard Layout */}
         <SettingsField
           label="Dashboard Layout"
@@ -329,17 +387,6 @@ function AppearanceSettings({
             ))}
           </div>
         </SettingsField>
-
-        {/* Theme Settings Placeholder */}
-        <div className="p-4 border border-dashed border-border rounded-lg">
-          <div className="text-center space-y-2">
-            <Palette className="h-8 w-8 text-muted-foreground mx-auto" />
-            <h3 className="text-sm font-medium text-foreground">Theme Settings</h3>
-            <p className="text-xs text-muted-foreground">
-              Dark mode and custom themes coming soon!
-            </p>
-          </div>
-        </div>
       </div>
     </SettingsSection>
   );
