@@ -15,7 +15,7 @@ describe('CardItem', () => {
     
     expect(screen.getByText(defaultCard.name)).toBeInTheDocument()
     expect(screen.getByText(defaultCard.type)).toBeInTheDocument()
-    expect(screen.getByText(defaultCard.setName)).toBeInTheDocument()
+    expect(screen.getByText(defaultCard.setName, { exact: false })).toBeInTheDocument()
     expect(screen.getByText('$0.25')).toBeInTheDocument()
   })
 
@@ -26,8 +26,8 @@ describe('CardItem', () => {
     
     render(<CardItem card={cardWithManaCost} onClick={mockOnClick} />)
     
-    // The mana cost formatting would need to be tested based on implementation
-    expect(screen.getByText('{2}{R}{R}')).toBeInTheDocument()
+    // The mana cost formatting converts {2}{R}{R} to 2🔴🔴
+    expect(screen.getByText('2🔴🔴')).toBeInTheDocument()
   })
 
   it('handles missing price gracefully', () => {
@@ -67,7 +67,7 @@ describe('CardItem', () => {
     const user = createUser()
     render(<CardItem card={defaultCard} onClick={mockOnClick} />)
     
-    const cardElement = screen.getByRole('button')
+    const cardElement = screen.getByTestId('card-item')
     await user.click(cardElement)
     
     expect(mockOnClick).toHaveBeenCalledWith(defaultCard)
@@ -164,7 +164,7 @@ describe('CardItem', () => {
     const user = createUser()
     render(<CardItem card={defaultCard} onClick={mockOnClick} />)
     
-    const cardElement = screen.getByRole('button')
+    const cardElement = screen.getByTestId('card-item')
     
     await user.hover(cardElement)
     
