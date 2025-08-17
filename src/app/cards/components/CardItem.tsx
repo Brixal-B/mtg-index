@@ -8,7 +8,7 @@ import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '@/lib/utils/
 
 interface CardItemProps {
   card: MTGCard;
-  onClick?: () => void;
+  onClick?: (card: MTGCard) => void;
   showActions?: boolean;
 }
 
@@ -17,6 +17,13 @@ const rarityColors = {
   uncommon: 'border-gray-600 bg-gray-100',
   rare: 'border-yellow-500 bg-yellow-50',
   mythic: 'border-orange-500 bg-orange-50',
+};
+
+const rarityTextColors = {
+  common: 'text-gray-600',
+  uncommon: 'text-gray-700',
+  rare: 'text-yellow-600',
+  mythic: 'text-orange-600',
 };
 
 const manaCostSymbols: Record<string, string> = {
@@ -61,15 +68,43 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
     console.log('Add to portfolio:', card.name);
   };
 
-  const price = card.prices.usd || card.prices.eur || 0;
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick(card);
+    }
+  };
+
+  // Enhanced price display with foil fallback
+  const regularPrice = card.prices.usd || card.prices.eur;
+  const foilPrice = card.prices.usdFoil || card.prices.eurFoil;
+  
+  let price = 0;
+  let isUsingFoilPrice = false;
+  
+  if (regularPrice && regularPrice > 0) {
+    price = regularPrice;
+  } else if (foilPrice && foilPrice > 0) {
+    price = foilPrice;
+    isUsingFoilPrice = true;
+  }
+  
   const formattedPrice = price > 0 ? `$${price.toFixed(2)}` : 'N/A';
 
   return (
     <div
-      className={`group relative bg-card border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer ${
+      className={`group relative bg-card border rounded-lg overflow-hidden hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer ${
         rarityColors[card.rarity]
       }`}
-      onClick={onClick}
+      onClick={handleCardClick}
+      role="button"
+      tabIndex={0}
+      data-testid="card-item"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
     >
       {/* Card Image */}
       <div className="aspect-[5/7] relative bg-muted">
@@ -97,7 +132,7 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onClick?.();
+                handleCardClick();
               }}
               className="p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-colors"
               title="View Details"
@@ -115,6 +150,7 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
                       : 'bg-white/20 hover:bg-white/30'
                   }`}
                   title={isWatched ? 'Remove from Watchlist' : 'Add to Watchlist'}
+                  aria-label={isWatched ? 'Remove from Watchlist' : 'Add to Watchlist'}
                 >
                   <Star className={`h-4 w-4 ${isWatched ? 'text-white fill-current' : 'text-white'}`} />
                 </button>
@@ -135,11 +171,11 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
       {/* Card Info */}
       <div className="p-3 space-y-2">
         <div className="space-y-1">
-          <h3 className="font-medium text-foreground text-sm leading-tight line-clamp-2">
+          <h3 className="font-medium text-foreground text-sm leading-tight line-clamp-2 truncate">
             {card.name}
           </h3>
           <div className="text-xs text-muted-foreground">
-            {card.setName} • {card.rarity}
+            {card.setName} • <span className={rarityTextColors[card.rarity]}>{card.rarity}</span>
           </div>
         </div>
 
@@ -151,6 +187,22 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
           </div>
         )}
 
+        {/* Power/Toughness for creatures */}
+        {card.power && card.toughness && (
+          <div className="text-sm">
+            <span className="text-muted-foreground">P/T: </span>
+            <span className="font-medium">{card.power}/{card.toughness}</span>
+          </div>
+        )}
+
+        {/* Loyalty for planeswalkers */}
+        {card.loyalty && (
+          <div className="text-sm">
+            <span className="text-muted-foreground">Loyalty: </span>
+            <span className="font-medium">{card.loyalty}</span>
+          </div>
+        )}
+
         {/* Price */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1">
@@ -159,6 +211,9 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
               price > 0 ? 'text-foreground' : 'text-muted-foreground'
             }`}>
               {formattedPrice}
+              {isUsingFoilPrice && price > 0 && (
+                <span className="text-xs text-muted-foreground ml-1">(Foil)</span>
+              )}
             </span>
           </div>
           

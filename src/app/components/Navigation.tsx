@@ -40,11 +40,11 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-8">
             <Link href="/" className="flex items-center space-x-2">
-              <TrendingUp className="h-8 w-8 text-primary" />
+              <TrendingUp className="h-8 w-8 text-primary" role="img" aria-hidden="true" />
               <span className="text-xl font-bold text-foreground">MTG Tracker</span>
             </Link>
             
-            <div className="hidden md:flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-4" data-testid="desktop-navigation">
               {navigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname.startsWith(item.href);
@@ -53,15 +53,16 @@ export function Navigation() {
                   <Link
                     key={item.name}
                     href={item.href}
+                    data-testid={`desktop-nav-${item.name.toLowerCase().replace(' ', '-')}`}
                     className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       isActive
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                     }`}
                     title={item.description}
+                    aria-label={`${item.name} (desktop navigation)`}
                   >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.name}</span>
+                    <Icon className="h-4 w-4" role="img" aria-hidden="true" />
                   </Link>
                 );
               })}
@@ -74,29 +75,39 @@ export function Navigation() {
               className="p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
               title="Settings"
             >
-              <Settings className="h-5 w-5" />
+              <Settings className="h-5 w-5" role="img" aria-hidden="true" />
             </Link>
           </div>
         </div>
         
         {/* Mobile navigation */}
-        <div className="md:hidden pb-4">
+        <div className="md:hidden pb-4" data-testid="mobile-navigation">
           <div className="flex items-center space-x-2 overflow-x-auto">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname.startsWith(item.href);
               
+              // Map navigation items to mobile-specific aria-labels
+              const mobileAriaLabels: { [key: string]: string } = {
+                'Browse Cards': 'Card Search',
+                'Portfolio': 'My Collection',
+                'Analytics': 'Data Analysis',
+                'Admin': 'Administration'
+              };
+              
               return (
                 <Link
                   key={item.name}
                   href={item.href}
+                  data-testid={`mobile-nav-${item.name.toLowerCase().replace(' ', '-')}`}
+                  aria-label={mobileAriaLabels[item.name] || item.name}
                   className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
                     isActive
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-4 w-4" role="img" aria-hidden="true" />
                   <span>{item.name}</span>
                 </Link>
               );
