@@ -1,5 +1,6 @@
 import { ReactElement } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
+import { waitFor } from '@testing-library/dom'
 import userEvent from '@testing-library/user-event'
 
 // Custom render function with providers
@@ -80,10 +81,7 @@ export const mockPortfolioCard = (overrides = {}) => ({
 export const createUser = () => userEvent.setup()
 
 // Helper to wait for async operations
-export const waitFor = async (callback: () => void | Promise<void>, options = {}) => {
-  const { waitFor: rtlWaitFor } = await import('@testing-library/react')
-  return rtlWaitFor(callback, options)
-}
+export { waitFor }
 
 // Helper to simulate API responses
 export const mockFetch = (data: any, status = 200) => {
