@@ -210,3 +210,4 @@ export function MarketTrendsChart({ timeframe }: MarketTrendsChartProps) {
 
 
 
+
