@@ -41,6 +41,14 @@ global.localStorage = localStorageMock
 // Mock fetch
 global.fetch = jest.fn()
 
+// Mock crypto.randomUUID
+Object.defineProperty(global, 'crypto', {
+  value: {
+    randomUUID: () => 'test-uuid-' + Math.random().toString(36).substr(2, 9),
+    getRandomValues: (arr) => arr.map(() => Math.floor(Math.random() * 256))
+  }
+})
+
 // Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
