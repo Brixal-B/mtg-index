@@ -16,6 +16,7 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   defaultCondition: 'near_mint',
   priceAlerts: [],
   dashboardLayout: ['portfolio-overview', 'top-performers', 'price-alerts', 'market-trends'],
+  theme: 'dark',
 };
 
 // Generic localStorage utility functions

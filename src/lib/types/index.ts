@@ -178,6 +178,7 @@ export interface UserPreferences {
   defaultCondition: PortfolioCard['condition'];
   priceAlerts: PriceAlert[];
   dashboardLayout: string[];
+  theme: 'light' | 'dark' | 'system';
 }
 
 export interface PriceAlert {
