@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface MarketTrendsChartProps {
@@ -8,7 +8,15 @@ interface MarketTrendsChartProps {
 }
 
 export function MarketTrendsChart({ timeframe }: MarketTrendsChartProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const chartData = useMemo(() => {
+    if (!isClient) return [];
+    
     const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365;
     const data = [];
     const now = new Date();
@@ -38,7 +46,7 @@ export function MarketTrendsChart({ timeframe }: MarketTrendsChartProps) {
     }
 
     return data;
-  }, [timeframe]);
+  }, [timeframe, isClient]);
 
   const formatNumber = (value: number, type: 'currency' | 'index' | 'volume' | 'percent') => {
     switch (type) {
@@ -205,6 +213,7 @@ export function MarketTrendsChart({ timeframe }: MarketTrendsChartProps) {
     </div>
   );
 }
+
 
 
 

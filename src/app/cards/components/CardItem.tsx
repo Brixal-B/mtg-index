@@ -86,7 +86,7 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
           <div className="flex items-center justify-center h-full bg-muted text-muted-foreground">
             <div className="text-center p-4">
               <div className="text-sm font-medium mb-1">{card.name}</div>
-              <div className="text-xs">{card.set.toUpperCase()}</div>
+              <div className="text-xs">{card.setCode.toUpperCase()}</div>
             </div>
           </div>
         )}
@@ -175,6 +175,7 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
     </div>
   );
 }
+
 
 
 

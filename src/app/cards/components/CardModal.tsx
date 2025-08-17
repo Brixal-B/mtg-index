@@ -105,7 +105,7 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
                 <div className="flex items-center justify-center h-full bg-muted text-muted-foreground">
                   <div className="text-center p-4">
                     <div className="text-lg font-medium mb-2">{card.name}</div>
-                    <div className="text-sm">{card.set.toUpperCase()}</div>
+                    <div className="text-sm">{card.setCode.toUpperCase()}</div>
                   </div>
                 </div>
               )}
@@ -253,7 +253,7 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
               <h3 className="font-semibold text-foreground">Set Information</h3>
               <div className="text-sm space-y-1">
                 <div><span className="text-muted-foreground">Set:</span> {card.setName}</div>
-                <div><span className="text-muted-foreground">Code:</span> {card.set.toUpperCase()}</div>
+                <div><span className="text-muted-foreground">Code:</span> {card.setCode.toUpperCase()}</div>
                 {card.number && (
                   <div><span className="text-muted-foreground">Number:</span> {card.number}</div>
                 )}
@@ -268,6 +268,7 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
     </div>
   );
 }
+
 
 
 

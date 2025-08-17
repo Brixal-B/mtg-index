@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Portfolio } from '@/lib/types';
 
@@ -10,7 +10,14 @@ interface PortfolioOverviewChartProps {
 }
 
 export function PortfolioOverviewChart({ portfolios, timeframe }: PortfolioOverviewChartProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const chartData = useMemo(() => {
+    if (!isClient) return [];
     const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365;
     const data = [];
     const now = new Date();
@@ -40,7 +47,7 @@ export function PortfolioOverviewChart({ portfolios, timeframe }: PortfolioOverv
     }
 
     return data;
-  }, [portfolios, timeframe]);
+  }, [portfolios, timeframe, isClient]);
 
   const formatCurrency = (value: number) => `$${value.toFixed(0)}`;
 
@@ -136,6 +143,7 @@ export function PortfolioOverviewChart({ portfolios, timeframe }: PortfolioOverv
     </div>
   );
 }
+
 
 
 

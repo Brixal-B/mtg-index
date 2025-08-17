@@ -38,14 +38,15 @@ export default function CardsPage() {
       if (query.trim()) {
         // Use simple search for text queries
         result = await searchCards(query, {
-          order: searchFilters.sortBy as any,
+          order: searchFilters.sortBy === 'price' ? 'usd' : searchFilters.sortBy as any,
           dir: searchFilters.sortOrder,
           page,
         });
       } else {
         // Use advanced search for filters
-        result = await advancedSearch({
-          ...searchFilters,
+        result = await advancedSearch('', searchFilters, {
+          order: searchFilters.sortBy === 'price' ? 'usd' : searchFilters.sortBy as any,
+          dir: searchFilters.sortOrder,
           page,
         });
       }
@@ -93,7 +94,7 @@ export default function CardsPage() {
 
   // Initial load with popular cards
   useEffect(() => {
-    performSearch('', { ...filters, sortBy: 'usd', sortOrder: 'desc' }, 1, false);
+    performSearch('', { ...filters, sortBy: 'price', sortOrder: 'desc' }, 1, false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -167,6 +168,7 @@ export default function CardsPage() {
     </div>
   );
 }
+
 
 
 

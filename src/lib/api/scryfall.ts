@@ -32,41 +32,51 @@ function transformScryfallCard(scryfallCard: any): MTGCard {
     convertedManaCost: scryfallCard.cmc || 0,
     type: scryfallCard.type_line || '',
     text: scryfallCard.oracle_text || '',
+    flavorText: scryfallCard.flavor_text || '',
     power: scryfallCard.power || '',
     toughness: scryfallCard.toughness || '',
     loyalty: scryfallCard.loyalty || '',
     imageUrl: scryfallCard.image_uris?.normal || scryfallCard.card_faces?.[0]?.image_uris?.normal || '',
     setName: scryfallCard.set_name || '',
     setCode: scryfallCard.set || '',
-    rarity: scryfallCard.rarity || 'common',
+    number: scryfallCard.collector_number || '',
+    artist: scryfallCard.artist || '',
+    rarity: (scryfallCard.rarity === 'mythic' ? 'mythic' : 
+             scryfallCard.rarity === 'rare' ? 'rare' : 
+             scryfallCard.rarity === 'uncommon' ? 'uncommon' : 'common') as 'common' | 'uncommon' | 'rare' | 'mythic',
+    colors: scryfallCard.colors || [],
+    colorIdentity: scryfallCard.color_identity || [],
     prices: {
-      usd: parseFloat(scryfallCard.prices?.usd) || null,
-      usdFoil: parseFloat(scryfallCard.prices?.usd_foil) || null,
-      eur: parseFloat(scryfallCard.prices?.eur) || null,
-      eurFoil: parseFloat(scryfallCard.prices?.eur_foil) || null,
-      tix: parseFloat(scryfallCard.prices?.tix) || null,
+      usd: scryfallCard.prices?.usd ? parseFloat(scryfallCard.prices.usd) : null,
+      usdFoil: scryfallCard.prices?.usd_foil ? parseFloat(scryfallCard.prices.usd_foil) : null,
+      eur: scryfallCard.prices?.eur ? parseFloat(scryfallCard.prices.eur) : null,
+      eurFoil: scryfallCard.prices?.eur_foil ? parseFloat(scryfallCard.prices.eur_foil) : null,
+      tix: scryfallCard.prices?.tix ? parseFloat(scryfallCard.prices.tix) : null,
     },
     legalities: scryfallCard.legalities || {},
     multiverseId: scryfallCard.multiverse_ids?.[0],
+    scryfallId: scryfallCard.id,
   };
 }
 
 interface SearchOptions {
   page?: number;
   limit?: number;
-  sort?: 'name' | 'set' | 'released' | 'rarity' | 'color' | 'usd' | 'eur' | 'tix' | 'cmc';
-  order?: 'asc' | 'desc';
+  order?: 'name' | 'set' | 'released' | 'rarity' | 'color' | 'usd' | 'eur' | 'tix' | 'cmc' | 'price';
+  dir?: 'asc' | 'desc';
 }
 
 interface SearchResult {
   data: MTGCard[];
+  cards: MTGCard[];
   totalCount: number;
+  totalCards: number;
   hasMore: boolean;
   page: number;
 }
 
 export async function searchCards(query: string, options: SearchOptions = {}): Promise<SearchResult> {
-  const { page = 1, limit = 20, sort = 'name', order = 'asc' } = options;
+  const { page = 1, limit = 20, order = 'name', dir = 'asc' } = options;
   
   try {
     // Build search query
@@ -74,17 +84,21 @@ export async function searchCards(query: string, options: SearchOptions = {}): P
       q: query,
       page: page.toString(),
       format: 'json',
-      order: sort,
-      dir: order,
+      order: order,
+      dir: dir,
     });
 
     const url = `${SCRYFALL_API_BASE}/cards/search?${searchParams}`;
     const response = await rateLimitedFetch(url);
     const data = await response.json();
 
+    const cards = data.data?.map(transformScryfallCard) || [];
+    const totalCount = data.total_cards || 0;
     return {
-      data: data.data?.map(transformScryfallCard) || [],
-      totalCount: data.total_cards || 0,
+      data: cards,
+      cards: cards,
+      totalCount: totalCount,
+      totalCards: totalCount,
       hasMore: data.has_more || false,
       page: page,
     };
@@ -94,7 +108,9 @@ export async function searchCards(query: string, options: SearchOptions = {}): P
     // Return empty result on error
     return {
       data: [],
+      cards: [],
       totalCount: 0,
+      totalCards: 0,
       hasMore: false,
       page: 1,
     };

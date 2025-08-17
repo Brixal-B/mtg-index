@@ -1,11 +1,18 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Activity } from 'lucide-react';
 
 export function SystemHealthChart() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const healthData = useMemo(() => {
+    if (!isClient) return [];
     const data = [];
     const now = new Date();
     
@@ -35,7 +42,7 @@ export function SystemHealthChart() {
     }
     
     return data;
-  }, []);
+  }, [isClient]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -163,6 +170,7 @@ export function SystemHealthChart() {
     </div>
   );
 }
+
 
 
 

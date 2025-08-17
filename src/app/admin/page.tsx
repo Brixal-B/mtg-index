@@ -26,9 +26,16 @@ import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 export default function AdminPage() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+    
     const loadMetrics = () => {
       try {
         const portfolios = getPortfolios();
@@ -82,7 +89,7 @@ export default function AdminPage() {
     // Auto-refresh every 30 seconds
     const interval = setInterval(loadMetrics, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isClient]);
 
   const handleRefresh = () => {
     setLoading(true);
@@ -165,7 +172,7 @@ export default function AdminPage() {
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Last updated</p>
             <p className="text-sm font-medium text-foreground">
-              {lastUpdated.toLocaleTimeString()}
+              {lastUpdated?.toLocaleTimeString() || 'Never'}
             </p>
           </div>
           <button
@@ -354,6 +361,7 @@ export default function AdminPage() {
     </div>
   );
 }
+
 
 
 

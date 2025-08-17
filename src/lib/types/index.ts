@@ -6,12 +6,13 @@ export interface MTGCard {
   convertedManaCost: number;
   type: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'mythic';
-  set: string;
+  setCode: string;
   setName: string;
   number?: string;
   artist?: string;
   power?: string;
   toughness?: string;
+  loyalty?: string;
   text?: string;
   flavorText?: string;
   imageUrl?: string;
@@ -25,12 +26,11 @@ export interface MTGCard {
 
 // Price tracking interfaces
 export interface MTGCardPrices {
-  usd?: number;
-  usdFoil?: number;
-  eur?: number;
-  eurFoil?: number;
-  tix?: number;
-  lastUpdated: string;
+  usd?: number | null;
+  usdFoil?: number | null;
+  eur?: number | null;
+  eurFoil?: number | null;
+  tix?: number | null;
 }
 
 export interface ProcessedCardPrice {

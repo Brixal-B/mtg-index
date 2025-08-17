@@ -21,13 +21,18 @@ export const mockMTGCard = (overrides = {}) => ({
   convertedManaCost: 1,
   type: 'Instant',
   text: 'Lightning Bolt deals 3 damage to any target.',
+  flavorText: 'The spark of an idea, the shock of genius.',
   power: '',
   toughness: '',
   loyalty: '',
   imageUrl: 'https://cards.scryfall.io/normal/front/test.jpg',
   setName: 'Test Set',
   setCode: 'TST',
-  rarity: 'common',
+  number: '001',
+  artist: 'Test Artist',
+  rarity: 'common' as const,
+  colors: ['R'],
+  colorIdentity: ['R'],
   prices: {
     usd: 0.25,
     usdFoil: 1.50,
@@ -41,6 +46,7 @@ export const mockMTGCard = (overrides = {}) => ({
     legacy: 'legal',
     vintage: 'legal',
   },
+  scryfallId: 'test-scryfall-id',
   multiverseId: 12345,
   ...overrides,
 })
@@ -60,11 +66,12 @@ export const mockPortfolio = (overrides = {}) => ({
 
 export const mockPortfolioCard = (overrides = {}) => ({
   cardId: 'test-card-id',
+  card: mockMTGCard(),
   quantity: 1,
   purchasePrice: 1.00,
+  purchaseDate: '2024-01-01T00:00:00.000Z',
   condition: 'near_mint' as const,
   foil: false,
-  addedAt: '2024-01-01T00:00:00.000Z',
   notes: '',
   ...overrides,
 })
