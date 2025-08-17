@@ -76,6 +76,24 @@ export function savePortfolio(portfolio: Portfolio): void {
   updateLastSync();
 }
 
+export function updatePortfolio(portfolio: Portfolio): void {
+  const portfolios = getPortfolios();
+  const existingIndex = portfolios.findIndex(p => p.id === portfolio.id);
+  
+  if (existingIndex >= 0) {
+    // Update the updatedAt timestamp
+    const updatedPortfolio = {
+      ...portfolio,
+      updatedAt: new Date().toISOString()
+    };
+    portfolios[existingIndex] = updatedPortfolio;
+    setStorageItem(STORAGE_KEYS.PORTFOLIOS, portfolios);
+    updateLastSync();
+  } else {
+    console.warn(`Portfolio with ID ${portfolio.id} not found for update`);
+  }
+}
+
 export function deletePortfolio(portfolioId: string): void {
   const portfolios = getPortfolios();
   const filteredPortfolios = portfolios.filter(p => p.id !== portfolioId);

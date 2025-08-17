@@ -7,8 +7,8 @@ import {
   addToWatchlist,
   removeFromWatchlist,
   isInWatchlist,
-  getUserPreferences,
-  saveUserPreferences,
+  getPreferences,
+  savePreferences,
   exportData,
   importData,
   clearAllData,
@@ -19,7 +19,6 @@ import { mockPortfolio, mockLocalStorage } from '@/test-utils'
 describe('localStorage utilities', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    mockLocalStorage()
   })
 
   describe('Portfolio management', () => {
@@ -122,7 +121,7 @@ describe('localStorage utilities', () => {
 
   describe('User preferences', () => {
     it('should return default preferences when none exist', () => {
-      const preferences = getUserPreferences()
+      const preferences = getPreferences()
       
       expect(preferences).toEqual({
         defaultCurrency: 'usd',
@@ -142,8 +141,8 @@ describe('localStorage utilities', () => {
         dashboardLayout: ['portfolio-overview', 'market-trends'],
       }
       
-      saveUserPreferences(preferences)
-      const savedPreferences = getUserPreferences()
+      savePreferences(preferences)
+      const savedPreferences = getPreferences()
       
       expect(savedPreferences).toEqual(preferences)
     })
