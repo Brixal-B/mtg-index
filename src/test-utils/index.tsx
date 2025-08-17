@@ -98,21 +98,15 @@ export const mockFetch = (data: any, status = 200) => {
 export const mockLocalStorage = (data: Record<string, any> = {}) => {
   const store = new Map(Object.entries(data))
   
-  ;(global.localStorage.getItem as jest.Mock).mockImplementation((key: string) => {
-    return store.get(key) || null
-  })
-  
-  ;(global.localStorage.setItem as jest.Mock).mockImplementation((key: string, value: string) => {
-    store.set(key, value)
-  })
-  
-  ;(global.localStorage.removeItem as jest.Mock).mockImplementation((key: string) => {
-    store.delete(key)
-  })
-  
-  ;(global.localStorage.clear as jest.Mock).mockImplementation(() => {
-    store.clear()
-  })
+  // Reset all localStorage methods to be fresh jest.fn() instances
+  global.localStorage = {
+    getItem: jest.fn((key: string) => store.get(key) || null),
+    setItem: jest.fn((key: string, value: string) => store.set(key, value)),
+    removeItem: jest.fn((key: string) => store.delete(key)),
+    clear: jest.fn(() => store.clear()),
+    length: 0,
+    key: jest.fn(),
+  } as any;
   
   return store
 }

@@ -36,10 +36,10 @@ describe('Portfolio Management Integration', () => {
 
     // Initially should show empty state
     expect(screen.getByText(/no portfolios found/i)).toBeInTheDocument()
-    expect(screen.getByText(/create your first portfolio/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /create your first portfolio/i })).toBeInTheDocument()
 
     // Create new portfolio
-    const createButton = screen.getByRole('button', { name: /create portfolio/i })
+    const createButton = screen.getByRole('button', { name: /create your first portfolio/i })
     await user.click(createButton)
 
     // Fill out portfolio form
@@ -50,16 +50,18 @@ describe('Portfolio Management Integration', () => {
     await user.type(descriptionInput, 'A portfolio for testing')
 
     // Submit form
-    const submitButton = screen.getByRole('button', { name: /create/i })
+    const submitButton = screen.getByRole('button', { name: /create portfolio/i })
     await user.click(submitButton)
 
     // Should now show the created portfolio
     await waitFor(() => {
-      expect(screen.getByText('My Test Portfolio')).toBeInTheDocument()
+      const portfolioElements = screen.getAllByText('My Test Portfolio')
+      expect(portfolioElements).toHaveLength(2) // Should appear in both list and overview
     })
 
-    expect(screen.getByText('A portfolio for testing')).toBeInTheDocument()
-    expect(screen.getByText(/total value.*\$0\.00/i)).toBeInTheDocument()
+    expect(screen.getAllByText('A portfolio for testing')).toHaveLength(2) // Should appear in both list and overview
+    expect(screen.getByText('Total Portfolios')).toBeInTheDocument()
+    expect(screen.getByText('1')).toBeInTheDocument() // Portfolio count should be 1
 
     // Add a card to the portfolio
     const addCardButton = screen.getByRole('button', { name: /add card/i })

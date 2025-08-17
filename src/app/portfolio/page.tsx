@@ -151,7 +151,7 @@ export default function PortfolioPage() {
         <div className="text-center py-12 space-y-4">
           <Wallet className="h-16 w-16 text-muted-foreground mx-auto" />
           <div className="space-y-2">
-            <h3 className="text-xl font-semibold text-foreground">No portfolios yet</h3>
+            <h3 className="text-xl font-semibold text-foreground">No portfolios found</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
               Create your first portfolio to start tracking your MTG card investments and monitor their performance over time.
             </p>
