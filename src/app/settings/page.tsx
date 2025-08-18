@@ -24,6 +24,7 @@ import { SettingsSection } from './components/SettingsSection';
 import { SettingsField } from './components/SettingsField';
 import { ToggleSwitch } from './components/ToggleSwitch';
 import { CreatePriceAlertModal } from './components/CreatePriceAlertModal';
+import { DatabaseStatusIndicator } from '../admin/components/DatabaseStatusIndicator';
 
 const SETTINGS_SECTIONS = [
   { id: 'general', name: 'General', icon: User },
@@ -567,6 +568,14 @@ function DataManagementSettings() {
       description="Import, export, and manage your MTG Tracker data."
     >
       <div className="space-y-6">
+        {/* MTGJSON Database Status */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-foreground">MTGJSON Database Status</h3>
+          <p className="text-xs text-muted-foreground">
+            Monitor the status of your historical price data and manage MTGJSON integration.
+          </p>
+          <DatabaseStatusIndicator showActions={true} />
+        </div>
         {/* Export Data */}
         <div className="space-y-3">
           <h3 className="text-sm font-medium text-foreground">Export Data</h3>

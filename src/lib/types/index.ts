@@ -33,6 +33,43 @@ export interface MTGCardPrices {
   tix?: number | null;
 }
 
+// MTGJSON Price Data Types
+export interface MTGJSONPricePoint {
+  date: string; // YYYY-MM-DD format
+  price: number;
+}
+
+export interface MTGJSONCardPrices {
+  paper?: {
+    cardkingdom?: {
+      normal?: MTGJSONPricePoint[];
+      foil?: MTGJSONPricePoint[];
+    };
+    cardmarket?: {
+      normal?: MTGJSONPricePoint[];
+      foil?: MTGJSONPricePoint[];
+    };
+    tcgplayer?: {
+      normal?: MTGJSONPricePoint[];
+      foil?: MTGJSONPricePoint[];
+    };
+  };
+  mtgo?: {
+    cardhoarder?: {
+      normal?: MTGJSONPricePoint[];
+    };
+  };
+}
+
+export interface MTGJSONCard {
+  uuid: string;
+  name: string;
+  setCode: string;
+  number: string;
+  rarity: string;
+  prices?: MTGJSONCardPrices;
+}
+
 export interface ProcessedCardPrice {
   cardId: string;
   date: string;
@@ -69,6 +106,7 @@ export interface Portfolio {
 // Analytics and Statistics Types
 export interface PriceHistory {
   cardId: string;
+  uuid?: string; // MTGJSON UUID for cross-referencing
   prices: ProcessedCardPrice[];
   trend: 'up' | 'down' | 'stable';
   volatility: number;
@@ -76,6 +114,8 @@ export interface PriceHistory {
   percentChange24h?: number;
   percentChange7d?: number;
   percentChange30d?: number;
+  lastUpdated?: string;
+  provider?: 'scryfall' | 'mtgjson' | 'mock';
 }
 
 export interface MarketStats {
@@ -201,5 +241,25 @@ export interface TrendData {
   label: string;
   data: ChartDataPoint[];
   color: string;
+}
+
+// MTGJSON Integration Types
+export interface MTGJSONConfig {
+  baseUrl: string;
+  cacheExpiry: number; // in milliseconds
+  preferredProvider: 'tcgplayer' | 'cardkingdom' | 'cardmarket';
+  enableCaching: boolean;
+}
+
+export interface MTGJSONCache {
+  allPrices?: {
+    data: Record<string, MTGJSONCardPrices>;
+    lastUpdated: string;
+    version: string;
+  };
+  cardMappings?: {
+    data: Record<string, MTGJSONCard>; // Scryfall ID -> MTGJSON Card mapping
+    lastUpdated: string;
+  };
 }
 

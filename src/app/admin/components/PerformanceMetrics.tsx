@@ -72,7 +72,7 @@ export function PerformanceMetrics({ metrics }: PerformanceMetricsProps) {
       <div className="mb-4">
         <div className="flex items-center space-x-2">
           <Zap className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold text-foreground">Performance Metrics</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Performance Metrics</h3>
         </div>
         <p className="text-sm text-muted-foreground">
           Response times and system performance over the last 12 hours

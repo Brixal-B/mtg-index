@@ -1,1 +1,7 @@
-{}
+{
+  "/api/cards/[id]/route": "app/api/cards/[id]/route.js",
+  "/cards/page": "app/cards/page.js",
+  "/portfolio/page": "app/portfolio/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/analytics/page": "app/analytics/page.js"
+}

@@ -18,6 +18,7 @@ export default function CardsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+
   const [filters, setFilters] = useState<CardFilters>({
     sortBy: 'name',
     sortOrder: 'asc',
@@ -94,7 +95,8 @@ export default function CardsPage() {
 
   // Initial load with popular cards
   useEffect(() => {
-    performSearch('', { ...filters, sortBy: 'price', sortOrder: 'desc' }, 1, false);
+    // Load initial cards with a default search that shows popular/expensive cards
+    performSearch('*', { ...filters, sortBy: 'price', sortOrder: 'desc' }, 1, false);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

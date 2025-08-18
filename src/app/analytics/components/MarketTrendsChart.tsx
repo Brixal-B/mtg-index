@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { marketDataService } from '@/lib/services/marketDataService';
 
 interface MarketTrendsChartProps {
   timeframe: '7d' | '30d' | '90d' | '1y';
@@ -17,35 +18,8 @@ export function MarketTrendsChart({ timeframe }: MarketTrendsChartProps) {
   const chartData = useMemo(() => {
     if (!isClient) return [];
     
-    const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365;
-    const data = [];
-    const now = new Date();
-
-    // Generate mock market trend data
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      
-      // Simulate market trends with some seasonality and random variation
-      const basePrice = 100;
-      const seasonalFactor = 1 + 0.1 * Math.sin((date.getTime() / (1000 * 60 * 60 * 24)) * 2 * Math.PI / 365);
-      const trendFactor = 1 + (days - i) / days * 0.2; // Slight upward trend
-      const randomFactor = 0.95 + Math.random() * 0.1; // ±5% daily variation
-      
-      const marketIndex = basePrice * seasonalFactor * trendFactor * randomFactor;
-      const volume = 1000 + Math.random() * 500; // Random volume
-      const volatility = Math.abs(Math.random() - 0.5) * 20; // 0-10% volatility
-      
-      data.push({
-        date: date.toISOString().split('T')[0],
-        marketIndex: Math.round(marketIndex * 100) / 100,
-        volume: Math.round(volume),
-        volatility: Math.round(volatility * 100) / 100,
-        avgPrice: Math.round((marketIndex * 0.8 + Math.random() * 20) * 100) / 100,
-      });
-    }
-
-    return data;
+    // Use the new market data service for realistic MTG market trends
+    return marketDataService.generateMarketTrends(timeframe);
   }, [timeframe, isClient]);
 
   const formatNumber = (value: number, type: 'currency' | 'index' | 'volume' | 'percent') => {
@@ -94,9 +68,14 @@ export function MarketTrendsChart({ timeframe }: MarketTrendsChartProps) {
   return (
     <div className="bg-card border border-border rounded-lg p-6">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-foreground mb-2">Market Trends</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-lg font-semibold text-foreground">Market Trends</h3>
+          <div className="flex items-center space-x-1 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+            <span>Simulated Market</span>
+          </div>
+        </div>
         <p className="text-sm text-muted-foreground">
-          Overall market performance and trading activity
+          Simulated MTG market overview - actual market trends vary by format and individual cards
         </p>
       </div>
 

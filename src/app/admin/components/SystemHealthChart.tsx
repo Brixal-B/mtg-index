@@ -71,7 +71,7 @@ export function SystemHealthChart() {
       <div className="mb-4">
         <div className="flex items-center space-x-2">
           <Activity className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold text-foreground">System Health (24h)</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-2">System Health (24h)</h3>
         </div>
         <p className="text-sm text-muted-foreground">
           Real-time system performance metrics and health indicators

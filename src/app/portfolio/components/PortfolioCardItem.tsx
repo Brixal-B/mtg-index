@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Edit3, Trash2, TrendingUp, TrendingDown, MoreVertical } from 'lucide-react';
 import { PortfolioCard } from '@/lib/types';
+import { usePriceTrends } from '@/lib/hooks/usePriceTrends';
+import { PriceTrendIndicator } from '@/app/components/PriceTrendIndicator';
 
 interface PortfolioCardItemProps {
   portfolioCard: PortfolioCard;
@@ -30,6 +32,9 @@ export function PortfolioCardItem({ portfolioCard, onRemove, onUpdate }: Portfol
     condition: portfolioCard.condition,
     notes: portfolioCard.notes || '',
   });
+
+  // Fetch price trends for performance context
+  const { trends, loading: trendsLoading } = usePriceTrends(portfolioCard.card.id);
 
   const currentPrice = portfolioCard.card.prices.usd || 0;
   const totalValue = currentPrice * portfolioCard.quantity;
@@ -146,9 +151,19 @@ export function PortfolioCardItem({ portfolioCard, onRemove, onUpdate }: Portfol
                 <span className="text-muted-foreground">Purchase:</span>
                 <span className="ml-1 font-medium">${portfolioCard.purchasePrice.toFixed(2)}</span>
               </div>
-              <div>
-                <span className="text-muted-foreground">Current:</span>
-                <span className="ml-1 font-medium">${currentPrice.toFixed(2)}</span>
+              <div className="flex items-center space-x-2">
+                <div>
+                  <span className="text-muted-foreground">Current:</span>
+                  <span className="ml-1 font-medium">${currentPrice.toFixed(2)}</span>
+                </div>
+                {!trendsLoading && trends?.trend7d && (
+                  <PriceTrendIndicator 
+                    trend={trends.trend7d} 
+                    timeframe="7d" 
+                    size="sm"
+                    showPercentage={false}
+                  />
+                )}
               </div>
               <div>
                 <span className="text-muted-foreground">Total Value:</span>
@@ -233,23 +248,36 @@ export function PortfolioCardItem({ portfolioCard, onRemove, onUpdate }: Portfol
 
           {/* Performance */}
           {!isEditing && (
-            <div className="mt-2 flex items-center justify-between">
-              <div className={`flex items-center space-x-1 text-sm ${
-                gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {gainLoss >= 0 ? (
-                  <TrendingUp className="h-3 w-3" />
-                ) : (
-                  <TrendingDown className="h-3 w-3" />
-                )}
-                <span>
-                  {gainLoss >= 0 ? '+' : ''}${gainLoss.toFixed(2)} 
-                  ({gainLossPercent >= 0 ? '+' : ''}{gainLossPercent.toFixed(1)}%)
-                </span>
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center justify-between">
+                <div className={`flex items-center space-x-1 text-sm ${
+                  gainLoss >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {gainLoss >= 0 ? (
+                    <TrendingUp className="h-3 w-3" />
+                  ) : (
+                    <TrendingDown className="h-3 w-3" />
+                  )}
+                  <span>
+                    {gainLoss >= 0 ? '+' : ''}${gainLoss.toFixed(2)} 
+                    ({gainLossPercent >= 0 ? '+' : ''}{gainLossPercent.toFixed(1)}%)
+                  </span>
+                </div>
               </div>
-
+              
+              {/* Market context */}
+              {!trendsLoading && trends?.trend30d && (
+                <div className="text-xs text-muted-foreground">
+                  Market: {trends.trend30d.direction === 'up' ? '↗' : trends.trend30d.direction === 'down' ? '↘' : '↔'} 
+                  {Math.abs(trends.trend30d.changePercent).toFixed(1)}% (30d)
+                  {trends.volatility?.volatilityLevel === 'high' && (
+                    <span className="ml-2 text-orange-600">• High volatility</span>
+                  )}
+                </div>
+              )}
+              
               {portfolioCard.notes && (
-                <div className="text-xs text-muted-foreground italic truncate max-w-xs">
+                <div className="text-xs text-muted-foreground italic truncate max-w-xs mt-2">
                   {portfolioCard.notes}
                 </div>
               )}

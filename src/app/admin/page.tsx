@@ -21,7 +21,10 @@ import { SystemHealthChart } from './components/SystemHealthChart';
 import { PerformanceMetrics } from './components/PerformanceMetrics';
 import { ApiStatusGrid } from './components/ApiStatusGrid';
 import { StorageMonitor } from './components/StorageMonitor';
+import { CardMappingManager } from './components/CardMappingManager';
+import { DatabaseStatusIndicator } from './components/DatabaseStatusIndicator';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
+import { marketDataService } from '@/lib/services/marketDataService';
 
 export default function AdminPage() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
@@ -53,10 +56,13 @@ export default function AdminPage() {
         // Mock API status (simulate some variability)
         const apiStatuses = Math.random() > 0.1 ? 'online' : 'offline';
         
-        // Mock performance metrics
-        const avgResponseTime = 150 + Math.random() * 100; // 150-250ms
-        const errorRate = Math.random() * 2; // 0-2%
-        const uptime = 99.5 + Math.random() * 0.4; // 99.5-99.9%
+        // Generate realistic performance metrics based on actual app usage
+        const performanceMetrics = marketDataService.generateSystemHealthMetrics({
+          portfolioCount: portfolios.length,
+          totalCards: uniqueCards,
+          storageUsagePercent: storageUsage.percentage,
+          apiCallsLast24h: Math.floor(Math.random() * 1000) // Simulated API calls
+        });
 
         const mockMetrics: SystemMetrics = {
           totalUsers: 1, // Single user for this client-side app
@@ -68,11 +74,7 @@ export default function AdminPage() {
             priceSync: apiStatuses,
             cardDatabase: apiStatuses,
           },
-          performanceMetrics: {
-            averageResponseTime: Math.round(avgResponseTime),
-            errorRate: Math.round(errorRate * 100) / 100,
-            uptime: Math.round(uptime * 100) / 100,
-          },
+          performanceMetrics,
         };
 
         setMetrics(mockMetrics);
@@ -169,6 +171,9 @@ export default function AdminPage() {
         </div>
         
         <div className="flex items-center space-x-4">
+          {/* Quick Database Status */}
+          <DatabaseStatusIndicator compact={true} showActions={false} />
+          
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Last updated</p>
             <p className="text-sm font-medium text-foreground">
@@ -357,6 +362,9 @@ export default function AdminPage() {
             </div>
           </div>
         </div>
+
+        {/* Card Mapping Manager */}
+        <CardMappingManager />
       </div>
     </div>
   );

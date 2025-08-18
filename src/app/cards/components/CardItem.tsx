@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { MTGCard } from '@/lib/types';
 import { Star, Plus, Eye, DollarSign } from 'lucide-react';
 import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '@/lib/utils/localStorage';
+import { usePriceTrends } from '@/lib/hooks/usePriceTrends';
+import { CompactPriceTrend } from '@/app/components/PriceTrendIndicator';
 
 interface CardItemProps {
   card: MTGCard;
@@ -49,6 +51,11 @@ function formatManaCost(manaCost: string = ''): string {
 export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
   const [isWatched, setIsWatched] = useState(isInWatchlist(card.id));
   const [imageError, setImageError] = useState(false);
+  
+  // Fetch price trends for this card
+  const { trends, loading: trendsLoading, isUsingMockData } = usePriceTrends(card.id, {
+    enabled: true // Enable trend fetching for all cards
+  });
 
   const handleWatchlistToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -217,10 +224,44 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
             </span>
           </div>
           
-          {isWatched && (
-            <Star className="h-4 w-4 text-yellow-500 fill-current" />
-          )}
+          <div className="flex items-center space-x-1">
+            {/* Price trend indicator */}
+            {!trendsLoading && trends?.trend7d && (
+              <div className="flex items-center space-x-1">
+                <CompactPriceTrend 
+                  trend={trends.trend7d} 
+                  timeframe="7d"
+                  className="opacity-80"
+                />
+                {isUsingMockData && (
+                  <div 
+                    className="px-1 py-0.5 rounded text-xs bg-blue-100 text-blue-700 border border-blue-200"
+                    title="Demo data - API unavailable"
+                  >
+                    Demo
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {isWatched && (
+              <Star className="h-4 w-4 text-yellow-500 fill-current" />
+            )}
+          </div>
         </div>
+
+        {/* Price trend details (for cards with significant changes) */}
+        {!trendsLoading && trends?.trend7d && Math.abs(trends.trend7d.changePercent) >= 10 && (
+          <div className="text-xs text-muted-foreground">
+            <span className={trends.trend7d.direction === 'up' ? 'text-green-600' : 'text-red-600'}>
+              {trends.trend7d.direction === 'up' ? '↗' : '↘'} 
+              {Math.abs(trends.trend7d.changePercent).toFixed(0)}% this week
+            </span>
+            {trends.volatility?.volatilityLevel === 'high' && (
+              <span className="ml-2 text-orange-600">• High volatility</span>
+            )}
+          </div>
+        )}
 
         {/* Type Line */}
         <div className="text-xs text-muted-foreground line-clamp-1">
