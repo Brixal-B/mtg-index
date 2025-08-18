@@ -16,12 +16,43 @@ async function rateLimitedFetch(url: string): Promise<Response> {
   
   lastRequestTime = Date.now();
   
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      // Try to get more details from the response
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.details) {
+          errorMessage += ` - ${errorData.details}`;
+        }
+      } catch {
+        // Ignore JSON parsing errors
+      }
+      throw new Error(errorMessage);
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('Scryfall API request failed:', {
+      url,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+    
+    // Add more user-friendly error message
+    if (error instanceof Error) {
+      if (error.message.includes('Failed to fetch')) {
+        throw new Error('Network error: Unable to connect to Scryfall API. Please check your internet connection.');
+      } else if (error.message.includes('HTTP 429')) {
+        throw new Error('Rate limit exceeded: Too many requests to Scryfall API. Please wait a moment and try again.');
+      } else if (error.message.includes('HTTP 500')) {
+        throw new Error('Scryfall server error: The API is temporarily unavailable. Please try again later.');
+      }
+    }
+    
+    throw error;
   }
-  
-  return response;
 }
 
 function transformScryfallCard(scryfallCard: any): MTGCard {
@@ -278,34 +309,104 @@ export async function getCardSuggestions(partialName: string): Promise<string[]>
   }
 }
 
+// Map common CardSphere set names to Scryfall set codes
+const setNameMappings: Record<string, string> = {
+  'Adventures in the Forgotten Realms Commander Decks': 'afc',
+  'Mystery Booster': 'mb1',
+  'Commander 2019': 'c19',
+  'Commander 2020': 'c20',
+  'Commander 2021': 'c21',
+  'Time Spiral Remastered': 'tsr',
+  'Modern Masters 2017': 'mm3',
+  'Modern Masters 2015': 'mm2',
+  'Ultimate Masters': 'uma',
+  'Double Masters': '2xm',
+  'Double Masters 2022': '2x2',
+  'Jumpstart': 'jmp',
+  'Commander Legends': 'cmr',
+  'Theros Beyond Death': 'thb',
+  'Ikoria: Lair of Behemoths': 'iko',
+  'Core Set 2021': 'm21',
+  'Core Set 2020': 'm20',
+  'War of the Spark': 'war'
+};
+
 // Get card by exact name and set (for CardSphere CSV mapping)
 export async function getCardByNameAndSet(cardName: string, setCode?: string): Promise<MTGCard | null> {
-  try {
-    let searchQuery = `!"${cardName}"`;
-    if (setCode) {
-      searchQuery += ` set:${setCode}`;
-    }
-    
-    const url = `${SCRYFALL_API_BASE}/cards/search?q=${encodeURIComponent(searchQuery)}&order=released&dir=desc`;
-    const response = await rateLimitedFetch(url);
-    const data = await response.json();
-    
-    if (data.data && data.data.length > 0) {
-      // Return the most recent printing if multiple versions exist
-      return transformScryfallCard(data.data[0]);
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error fetching card by name and set:', error);
-    return null;
+  // Normalize the set code if it's a full name
+  let normalizedSetCode = setCode;
+  if (setCode && setNameMappings[setCode]) {
+    normalizedSetCode = setNameMappings[setCode];
   }
+
+  // Try multiple search strategies
+  const searchStrategies = [
+    // Strategy 1: Exact name with normalized set
+    () => {
+      let searchQuery = `!"${cardName}"`;
+      if (normalizedSetCode) {
+        searchQuery += ` set:${normalizedSetCode}`;
+      }
+      return searchQuery;
+    },
+    
+    // Strategy 2: Exact name with original set (if different from normalized)
+    () => {
+      if (setCode && normalizedSetCode && setCode !== normalizedSetCode) {
+        return `!"${cardName}" set:${setCode}`;
+      }
+      return null;
+    },
+    
+    // Strategy 3: Exact name without set (if set search failed)
+    () => setCode ? `!"${cardName}"` : null,
+    
+    // Strategy 4: Fuzzy name search (without quotes)
+    () => `${cardName}`,
+    
+    // Strategy 5: Fuzzy name with normalized set
+    () => normalizedSetCode ? `${cardName} set:${normalizedSetCode}` : null
+  ];
+
+  for (const strategy of searchStrategies) {
+    const searchQuery = strategy();
+    if (!searchQuery) continue;
+
+    try {
+      const url = `${SCRYFALL_API_BASE}/cards/search?q=${encodeURIComponent(searchQuery)}&order=released&dir=desc`;
+      const response = await rateLimitedFetch(url);
+      const data = await response.json();
+      
+      if (data.data && data.data.length > 0) {
+        // Return the most recent printing if multiple versions exist
+        return transformScryfallCard(data.data[0]);
+      }
+    } catch (error) {
+      // If it's a 404, continue to next strategy
+      if (error instanceof Error && error.message.includes('HTTP 404')) {
+        continue;
+      }
+      
+      // For other errors, log and continue
+      console.error('Error in search strategy:', {
+        cardName,
+        setCode,
+        searchQuery,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+
+  // All strategies failed
+  console.log(`Card not found with any strategy: ${cardName}${setCode ? ` (${setCode})` : ''}`);
+  return null;
 }
 
 // Batch lookup for CardSphere CSV import
-export async function batchLookupCards(cardEntries: Array<{name: string, set?: string}>): Promise<Array<{
+export async function batchLookupCards(cardEntries: Array<{name: string, set?: string, scryfallId?: string}>): Promise<Array<{
   name: string;
   set?: string;
+  scryfallId?: string;
   card: MTGCard | null;
   error?: string;
 }>> {
@@ -313,10 +414,26 @@ export async function batchLookupCards(cardEntries: Array<{name: string, set?: s
   
   for (const entry of cardEntries) {
     try {
-      const card = await getCardByNameAndSet(entry.name, entry.set);
+      let card: MTGCard | null = null;
+      
+      // Strategy 1: Try Scryfall ID first (most reliable)
+      if (entry.scryfallId) {
+        try {
+          card = await getCard(entry.scryfallId);
+        } catch (error) {
+          console.log(`Failed to fetch card by Scryfall ID ${entry.scryfallId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+      
+      // Strategy 2: Fall back to name + set search if ID lookup failed
+      if (!card) {
+        card = await getCardByNameAndSet(entry.name, entry.set);
+      }
+      
       results.push({
         name: entry.name,
         set: entry.set,
+        scryfallId: entry.scryfallId,
         card,
         error: card ? undefined : 'Card not found'
       });
@@ -324,6 +441,7 @@ export async function batchLookupCards(cardEntries: Array<{name: string, set?: s
       results.push({
         name: entry.name,
         set: entry.set,
+        scryfallId: entry.scryfallId,
         card: null,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
