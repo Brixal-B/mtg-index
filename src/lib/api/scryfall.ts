@@ -278,5 +278,60 @@ export async function getCardSuggestions(partialName: string): Promise<string[]>
   }
 }
 
+// Get card by exact name and set (for CardSphere CSV mapping)
+export async function getCardByNameAndSet(cardName: string, setCode?: string): Promise<MTGCard | null> {
+  try {
+    let searchQuery = `!"${cardName}"`;
+    if (setCode) {
+      searchQuery += ` set:${setCode}`;
+    }
+    
+    const url = `${SCRYFALL_API_BASE}/cards/search?q=${encodeURIComponent(searchQuery)}&order=released&dir=desc`;
+    const response = await rateLimitedFetch(url);
+    const data = await response.json();
+    
+    if (data.data && data.data.length > 0) {
+      // Return the most recent printing if multiple versions exist
+      return transformScryfallCard(data.data[0]);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching card by name and set:', error);
+    return null;
+  }
+}
+
+// Batch lookup for CardSphere CSV import
+export async function batchLookupCards(cardEntries: Array<{name: string, set?: string}>): Promise<Array<{
+  name: string;
+  set?: string;
+  card: MTGCard | null;
+  error?: string;
+}>> {
+  const results = [];
+  
+  for (const entry of cardEntries) {
+    try {
+      const card = await getCardByNameAndSet(entry.name, entry.set);
+      results.push({
+        name: entry.name,
+        set: entry.set,
+        card,
+        error: card ? undefined : 'Card not found'
+      });
+    } catch (error) {
+      results.push({
+        name: entry.name,
+        set: entry.set,
+        card: null,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+  
+  return results;
+}
+
 
 
