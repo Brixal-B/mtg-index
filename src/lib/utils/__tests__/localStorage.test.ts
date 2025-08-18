@@ -136,7 +136,7 @@ describe('localStorage utilities', () => {
       const preferences = {
         defaultCurrency: 'eur' as const,
         showFoilPrices: true,
-        defaultCondition: 'lightly_played' as const,
+        defaultCondition: 'light_played' as const,
         priceAlerts: [],
         dashboardLayout: ['portfolio-overview', 'market-trends'],
       }
@@ -155,7 +155,8 @@ describe('localStorage utilities', () => {
       addToWatchlist('card-1')
       
       const exportedData = exportData()
-      const parsedData = JSON.parse(exportedData)
+      expect(exportedData).not.toBeNull()
+      const parsedData = JSON.parse(exportedData!)
       
       expect(parsedData.portfolios).toHaveLength(1)
       expect(parsedData.watchlist).toEqual(['card-1'])
@@ -221,10 +222,11 @@ describe('localStorage utilities', () => {
       
       const usage = getStorageUsage()
       
-      expect(usage.used).toBeGreaterThan(0)
-      expect(usage.total).toBe(5 * 1024 * 1024) // 5MB
-      expect(usage.percentage).toBeGreaterThan(0)
-      expect(usage.percentage).toBeLessThan(100)
+      expect(usage).not.toBeNull()
+      expect(usage!.used).toBeGreaterThan(0)
+      expect(usage!.total).toBe(5 * 1024 * 1024) // 5MB
+      expect(usage!.percentage).toBeGreaterThan(0)
+      expect(usage!.percentage).toBeLessThan(100)
     })
   })
 

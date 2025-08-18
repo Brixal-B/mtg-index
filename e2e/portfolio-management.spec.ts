@@ -57,8 +57,8 @@ test.describe('Portfolio Management E2E', () => {
     // Edit portfolio
     await page.getByRole('button', { name: /edit portfolio/i }).click()
     
-    await page.getByDisplayValue('Original Name').fill('Updated Name')
-    await page.getByDisplayValue('Original Description').fill('Updated Description')
+    await page.locator('input[value="Original Name"]').fill('Updated Name')
+    await page.locator('textarea,input').filter({ hasText: 'Original Description' }).fill('Updated Description')
     
     await page.getByRole('button', { name: /save changes/i }).click()
     
@@ -84,7 +84,7 @@ test.describe('Portfolio Management E2E', () => {
     
     // Should return to empty state
     await expect(page.getByText(/no portfolios found/i)).toBeVisible()
-    await expect(page.queryByText('Portfolio to Delete')).not.toBeVisible()
+    await expect(page.getByText('Portfolio to Delete')).not.toBeVisible()
   })
 
   test('should handle multiple portfolios', async ({ page }) => {

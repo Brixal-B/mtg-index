@@ -193,7 +193,7 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
       quantity: result.quantity,
       purchasePrice: result.purchasePrice,
       purchaseDate: result.purchaseDate,
-      condition: result.condition,
+      condition: mapCondition(result.condition),
       foil: result.foil,
       notes: result.notes
     }));

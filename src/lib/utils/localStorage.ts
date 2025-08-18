@@ -106,14 +106,13 @@ export function updatePortfolio(portfolio: Portfolio): void {
       updatedAt: new Date().toISOString()
     };
     portfolios[existingIndex] = updatedPortfolio;
-    setStorageItem(STORAGE_KEYS.PORTFOLIOS, portfolios);
-    updateLastSync();
+    saveToStorage(STORAGE_KEYS.PORTFOLIOS, portfolios);
   } else {
     console.warn(`Portfolio with ID ${portfolio.id} not found for update`);
   }
 }
 
-export function deletePortfolio(portfolioId: string): void {
+export function deletePortfolio(portfolioId: string): boolean {
   const portfolios = getPortfolios();
   const filteredPortfolios = portfolios.filter(p => p.id !== portfolioId);
   return saveToStorage(STORAGE_KEYS.PORTFOLIOS, filteredPortfolios);
@@ -200,9 +199,13 @@ export function exportData(): string | null {
   }
 }
 
-export function importData(jsonData: string): boolean {
+export function importData(jsonData: string): { success: boolean; message?: string } {
   try {
     const data = JSON.parse(jsonData);
+    
+    if (!data || typeof data !== 'object') {
+      return { success: false, message: 'Invalid data structure' };
+    }
     
     if (data.portfolios && Array.isArray(data.portfolios)) {
       saveToStorage(STORAGE_KEYS.PORTFOLIOS, data.portfolios);
@@ -216,11 +219,25 @@ export function importData(jsonData: string): boolean {
       saveToStorage(STORAGE_KEYS.SETTINGS, { ...DEFAULT_SETTINGS, ...data.settings });
     }
     
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('Error importing data:', error);
-    return false;
+    return { success: false, message: `Invalid JSON: ${error}` };
   }
+}
+
+// Preferences aliases for compatibility
+export function getPreferences(): UserPreferences {
+  return getSettings();
+}
+
+export function savePreferences(preferences: Partial<UserPreferences>): boolean {
+  return updateSettings(preferences);
+}
+
+// Storage usage alias for compatibility
+export function getStorageUsage() {
+  return getStorageStats();
 }
 
 // Development helper functions
@@ -232,6 +249,15 @@ export function getStorageStats() {
   const portfolios = getPortfolios();
   const watchlist = getWatchlist();
   const settings = getSettings();
+
+  const used = new Blob([JSON.stringify({
+    [STORAGE_KEYS.PORTFOLIOS]: portfolios,
+    [STORAGE_KEYS.WATCHLIST]: watchlist,
+    [STORAGE_KEYS.SETTINGS]: settings,
+  })]).size;
+
+  const total = 5 * 1024 * 1024; // 5MB estimate
+  const percentage = (used / total) * 100;
 
   return {
     portfolios: {
@@ -245,12 +271,11 @@ export function getStorageStats() {
       configured: Object.keys(settings).length,
     },
     storage: {
-      used: new Blob([JSON.stringify({
-        [STORAGE_KEYS.PORTFOLIOS]: portfolios,
-        [STORAGE_KEYS.WATCHLIST]: watchlist,
-        [STORAGE_KEYS.SETTINGS]: settings,
-      })]).size,
+      used,
     },
+    used,
+    total,
+    percentage,
   };
 }
 

@@ -47,8 +47,8 @@ export default function AdminPage() {
         
         // Mock system health based on storage usage and data
         const systemHealth: SystemMetrics['systemHealth'] = 
-          storageUsage.percentage > 80 ? 'critical' :
-          storageUsage.percentage > 60 ? 'warning' : 'healthy';
+          (storageUsage?.percentage || 0) > 80 ? 'critical' :
+          (storageUsage?.percentage || 0) > 60 ? 'warning' : 'healthy';
 
         // Mock API status (simulate some variability)
         const apiStatuses = Math.random() > 0.1 ? 'online' : 'offline';

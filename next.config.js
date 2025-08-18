@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  trailingSlash: true,
+  // Only use static export and basePath for production builds
+  ...(process.env.NODE_ENV === 'production' && process.env.GITHUB_PAGES === 'true' ? {
+    output: 'export',
+    basePath: '/mtg-index',
+    assetPrefix: '/mtg-index',
+    trailingSlash: true,
+  } : {}),
   images: {
     unoptimized: true,
   },
-  basePath: '/mtg-index',
-  assetPrefix: '/mtg-index',
   typescript: {
     ignoreBuildErrors: false,
   },

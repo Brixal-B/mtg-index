@@ -78,8 +78,8 @@ describe('Scryfall API', () => {
 
       await searchCards('Lightning', {
         page: 2,
-        sort: 'cmc',
-        order: 'desc',
+        order: 'cmc',
+        dir: 'desc',
       })
 
       expect(global.fetch).toHaveBeenCalledWith(
