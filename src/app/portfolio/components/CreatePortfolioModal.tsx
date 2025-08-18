@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Wallet } from 'lucide-react';
 import { Portfolio } from '@/lib/types';
 import { savePortfolio } from '@/lib/utils/localStorage';
+// import { generateUUID } from '@/lib/utils/uuid';
 
 interface CreatePortfolioModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export function CreatePortfolioModal({
 
     try {
       const newPortfolio: Portfolio = {
-        id: crypto.randomUUID(),
+        id: `portfolio-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         name: name.trim(),
         description: description.trim() || undefined,
         cards: [],

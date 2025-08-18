@@ -129,6 +129,53 @@ export function PortfolioOverview({ portfolio, onPortfolioUpdated }: PortfolioOv
     onPortfolioUpdated(updatedPortfolio);
   };
 
+  const handleCsvImport = (cards: PortfolioCard[]) => {
+    // Add all imported cards to the portfolio
+    const updatedCards = [...portfolio.cards];
+    
+    cards.forEach(newCard => {
+      const existingCardIndex = updatedCards.findIndex(
+        c => c.cardId === newCard.cardId && c.foil === newCard.foil && c.condition === newCard.condition
+      );
+
+      if (existingCardIndex >= 0) {
+        // Update existing card quantity
+        updatedCards[existingCardIndex] = {
+          ...updatedCards[existingCardIndex],
+          quantity: updatedCards[existingCardIndex].quantity + newCard.quantity
+        };
+      } else {
+        // Add new card
+        updatedCards.push(newCard);
+      }
+    });
+
+    // Recalculate portfolio totals
+    const totalValue = updatedCards.reduce((sum, c) => {
+      const currentPrice = c.card.prices.usd || 0;
+      return sum + (currentPrice * c.quantity);
+    }, 0);
+
+    const totalCost = updatedCards.reduce((sum, c) => {
+      return sum + (c.purchasePrice * c.quantity);
+    }, 0);
+
+    const performance = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0;
+
+    const updatedPortfolio: Portfolio = {
+      ...portfolio,
+      cards: updatedCards,
+      totalValue,
+      totalCost,
+      performance,
+      updatedAt: new Date().toISOString(),
+    };
+
+    savePortfolio(updatedPortfolio);
+    onPortfolioUpdated(updatedPortfolio);
+    setShowCsvUploadModal(false);
+  };
+
   // Filter and sort cards
   const filteredCards = portfolio.cards.filter(card =>
     card.card.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -184,13 +231,22 @@ export function PortfolioOverview({ portfolio, onPortfolioUpdated }: PortfolioOv
               <p className="text-muted-foreground mt-1">{portfolio.description}</p>
             )}
           </div>
-          <button
-            onClick={() => setShowAddCardModal(true)}
-            className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Card</span>
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowCsvUploadModal(true)}
+              className="flex items-center space-x-2 border border-border text-foreground px-4 py-2 rounded-lg hover:bg-accent transition-colors"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Import CSV</span>
+            </button>
+            <button
+              onClick={() => setShowAddCardModal(true)}
+              className="flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Card</span>
+            </button>
+          </div>
         </div>
 
         {/* Portfolio Stats */}
@@ -277,15 +333,24 @@ export function PortfolioOverview({ portfolio, onPortfolioUpdated }: PortfolioOv
           <DollarSign className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-foreground mb-2">No cards in portfolio</h3>
           <p className="text-muted-foreground mb-4">
-            Start building your portfolio by adding some cards.
+            Start building your portfolio by adding cards or importing from your CardSphere CSV.
           </p>
-          <button
-            onClick={() => setShowAddCardModal(true)}
-            className="inline-flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Your First Card</span>
-          </button>
+          <div className="flex justify-center space-x-3">
+            <button
+              onClick={() => setShowCsvUploadModal(true)}
+              className="inline-flex items-center space-x-2 border border-border text-foreground px-4 py-2 rounded-lg hover:bg-accent transition-colors"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Import CSV</span>
+            </button>
+            <button
+              onClick={() => setShowAddCardModal(true)}
+              className="inline-flex items-center space-x-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Your First Card</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="bg-card border border-border rounded-lg">
@@ -312,6 +377,13 @@ export function PortfolioOverview({ portfolio, onPortfolioUpdated }: PortfolioOv
         isOpen={showAddCardModal}
         onClose={() => setShowAddCardModal(false)}
         onAddCard={handleAddCard}
+      />
+
+      {/* CSV Upload Modal */}
+      <CsvUploadModal
+        isOpen={showCsvUploadModal}
+        onClose={() => setShowCsvUploadModal(false)}
+        onCardsImported={handleCsvImport}
       />
     </div>
   );

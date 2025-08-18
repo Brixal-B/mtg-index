@@ -14,6 +14,7 @@ interface CsvUploadModalProps {
 interface CardSphereEntry {
   name: string;
   set?: string;
+  scryfallId?: string;  // Add Scryfall ID support
   quantity: number;
   condition: PortfolioCard['condition'];
   foil: boolean;
@@ -55,7 +56,34 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
 
   const parseCardSphereCSV = (csvContent: string): CardSphereEntry[] => {
     const lines = csvContent.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    
+    // Parse CSV with proper quote handling
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      result.push(current.trim());
+      return result;
+    };
+    
+    const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+    
+    // Debug: Log headers
+    console.log('CSV Headers:', headers);
     
     // Map common CardSphere CSV headers
     const headerMap: Record<string, string> = {
@@ -67,6 +95,7 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
       'set_code': 'set',
       'edition': 'set',
       'quantity': 'quantity',
+      'count': 'quantity',  // CardSphere uses 'Count' for quantity
       'qty': 'quantity',
       'condition': 'condition',
       'foil': 'foil',
@@ -80,21 +109,36 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
       'purchase date': 'purchaseDate',
       'purchase_date': 'purchaseDate',
       'acquired date': 'purchaseDate',
+      'last modified': 'purchaseDate',  // CardSphere uses 'Last Modified'
       'notes': 'notes',
       'comment': 'notes',
-      'comments': 'notes'
+      'comments': 'notes',
+      'tags': 'notes',  // CardSphere uses 'Tags' which we can map to notes
+      'scryfall id': 'scryfallId',  // CardSphere includes Scryfall ID - use this!
+      'scryfall_id': 'scryfallId'
     };
 
     const entries: CardSphereEntry[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+      const values = parseCSVLine(lines[i]);
       const entry: any = {};
+
+      // Debug: Log first row
+      if (i === 1) {
+        console.log('First row values:', values);
+        console.log('Values length:', values.length);
+      }
 
       headers.forEach((header, index) => {
         const mappedField = headerMap[header];
-        if (mappedField && values[index]) {
+        if (mappedField && values[index] && values[index] !== '') {
           entry[mappedField] = values[index];
+          
+          // Debug: Log Scryfall ID mapping
+          if (i === 1 && mappedField === 'scryfallId') {
+            console.log(`Mapped Scryfall ID: header="${header}", index=${index}, value="${values[index]}"`);
+          }
         }
       });
 
@@ -102,6 +146,7 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
         entries.push({
           name: entry.name,
           set: entry.set || undefined,
+          scryfallId: entry.scryfallId || undefined,  // Include Scryfall ID
           quantity: parseInt(entry.quantity) || 1,
           condition: mapCondition(entry.condition) || 'near_mint',
           foil: parseFoil(entry.foil),
@@ -157,7 +202,8 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
       // Batch lookup cards from Scryfall
       const lookupEntries = entries.map(entry => ({
         name: entry.name,
-        set: entry.set
+        set: entry.set,
+        scryfallId: entry.scryfallId  // Include Scryfall ID for direct lookup
       }));
 
       const lookupResults = await batchLookupCards(lookupEntries);
@@ -187,26 +233,40 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
   const handleConfirmImport = () => {
     const successfulImports = results.filter(result => result.status === 'success' && result.card);
     
-    const portfolioCards: PortfolioCard[] = successfulImports.map(result => ({
-      cardId: result.card!.id,
-      card: result.card!,
-      quantity: result.quantity,
-      purchasePrice: result.purchasePrice,
-      purchaseDate: result.purchaseDate,
-      condition: mapCondition(result.condition),
-      foil: result.foil,
-      notes: result.notes
-    }));
+    const portfolioCards: PortfolioCard[] = successfulImports.map(result => {
+      const card = result.card!;
+      
+      // Use Scryfall price as purchase price - prioritize foil price if card is foil
+      let purchasePrice = 0;
+      if (result.foil && card.prices.usdFoil) {
+        purchasePrice = card.prices.usdFoil;
+      } else if (card.prices.usd) {
+        purchasePrice = card.prices.usd;
+      } else if (card.prices.eur) {
+        purchasePrice = card.prices.eur;
+      }
+
+      return {
+        cardId: card.id,
+        card: card,
+        quantity: result.quantity,
+        purchasePrice: purchasePrice, // Use fetched Scryfall price as purchase price
+        purchaseDate: result.purchaseDate,
+        condition: mapCondition(result.condition),
+        foil: result.foil,
+        notes: result.notes
+      };
+    });
 
     onCardsImported(portfolioCards);
     onClose();
   };
 
   const downloadSampleCSV = () => {
-    const sampleCSV = `name,set,quantity,condition,foil,purchase_price,purchase_date,notes
-Lightning Bolt,lea,4,near_mint,false,25.00,2024-01-15,Alpha version
-Black Lotus,lea,1,excellent,false,15000.00,2024-01-10,Power Nine
-Tarmogoyf,fut,2,mint,true,120.00,2024-01-20,Future Sight foil`;
+    const sampleCSV = `name,set,quantity,condition,foil,scryfall_id,purchase_price,purchase_date,notes
+Lightning Bolt,lea,4,near_mint,false,24c3d451-6e59-470c-a6b8-f2fb7a00b0c3,25.00,2024-01-15,Alpha version
+Black Lotus,lea,1,excellent,false,bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd,15000.00,2024-01-10,Power Nine
+Tarmogoyf,fut,2,mint,true,69daba76-96e8-4bcc-ab79-2da3829d4df0,120.00,2024-01-20,Future Sight foil`;
 
     const blob = new Blob([sampleCSV], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -270,7 +330,9 @@ Tarmogoyf,fut,2,mint,true,120.00,2024-01-20,Future Sight foil`;
               <div className="bg-accent rounded-lg p-4">
                 <h4 className="font-medium text-foreground mb-2">Expected CSV Format:</h4>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Your CSV should include columns for: name, set (optional), quantity, condition, foil, purchase_price, purchase_date
+                  Your CSV should include columns for: name, set (optional), quantity, condition, foil. 
+                  If your CSV includes a "Scryfall ID" column (like CardSphere exports), that will be used for more accurate card matching. 
+                  Purchase prices will be automatically fetched from Scryfall's current market prices.
                 </p>
                 <button
                   onClick={downloadSampleCSV}
