@@ -1,7 +1,0 @@
-{
-  "/api/cards/[id]/route": "app/api/cards/[id]/route.js",
-  "/api/cards/search/route": "app/api/cards/search/route.js",
-  "/page": "app/page.js",
-  "/analytics/page": "app/analytics/page.js",
-  "/portfolio/page": "app/portfolio/page.js"
-}
