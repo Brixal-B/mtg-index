@@ -264,6 +264,7 @@ export interface UserPreferences {
   defaultCurrency: 'usd' | 'eur';
   showFoilPrices: boolean;
   defaultCondition: PortfolioCard['condition'];
+  defaultBuyPricePercentage: number; // Added for buy price estimation slider
   priceAlerts: PriceAlert[];
   dashboardLayout: string[];
   theme: 'light' | 'dark' | 'system';
