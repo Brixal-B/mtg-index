@@ -103,6 +103,54 @@ export interface Portfolio {
   updatedAt: string;
 }
 
+// Timeline Tracking Types (Proof of Concept)
+export interface PortfolioTransaction {
+  id: string;
+  portfolioId: string;
+  type: 'add' | 'remove' | 'update';
+  timestamp: string;
+  cardId: string;
+  quantityChange: number; // +5 for add, -2 for sell
+  pricePerCard: number;
+  previousQuantity: number;
+  newQuantity: number;
+  notes?: string;
+  source?: 'manual' | 'csv_import';
+}
+
+export interface PortfolioSnapshot {
+  portfolioId: string;
+  date: string; // YYYY-MM-DD
+  cards: Array<{
+    cardId: string;
+    quantity: number;
+    totalCost: number;
+    averageCostBasis: number;
+  }>;
+  totalValue: number;
+  totalCost: number;
+}
+
+export interface PortfolioTimelineEntry {
+  date: string;
+  portfolioValue: number;
+  portfolioCost: number;
+  cardCount: number;
+  uniqueCards: number;
+  dailyChange?: number;
+  dailyChangePercent?: number;
+}
+
+// Enhanced Portfolio with Timeline Support
+export interface EnhancedPortfolio extends Portfolio {
+  transactions: PortfolioTransaction[];
+  snapshots?: PortfolioSnapshot[];
+  settings: {
+    trackTimeline: boolean;
+    costBasisMethod: 'fifo' | 'lifo' | 'average';
+  };
+}
+
 // Analytics and Statistics Types
 export interface PriceHistory {
   cardId: string;

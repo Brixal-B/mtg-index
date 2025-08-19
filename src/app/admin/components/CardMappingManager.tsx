@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { 
   Database, 
-  Download, 
   RefreshCw, 
   Trash2, 
   CheckCircle, 
@@ -15,7 +14,7 @@ import {
 } from 'lucide-react';
 import { cardMappingService, type MappingStats } from '@/lib/services/cardMappingService';
 import { allPrintingsStorage, type SetCardData } from '@/lib/utils/allPrintingsStorage';
-import { mtgjsonInitService, type InitializationProgress } from '@/lib/services/mtgjsonInitService';
+import { mtgjsonInitService } from '@/lib/services/mtgjsonInitService';
 import { runMTGJSONTests, testCardMappingForCard, quickHealthCheck } from '@/lib/utils/mtgjsonTestUtils';
 import { runAllUnicodeTests } from '@/lib/utils/unicodeTestUtils';
 import { cleanupLocalStorage, getLocalStorageUsage, emergencyCleanup, formatBytes, isQuotaExceeded } from '@/lib/utils/storageCleanup';
@@ -25,8 +24,6 @@ export function CardMappingManager() {
   const [mappingStats, setMappingStats] = useState<MappingStats | null>(null);
   const [storageStats, setStorageStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [downloading, setDownloading] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [testCardName, setTestCardName] = useState('Lightning Bolt');
   const [searchResults, setSearchResults] = useState<SetCardData[]>([]);
@@ -59,54 +56,7 @@ export function CardMappingManager() {
     }
   };
 
-  const handleDownloadAllPrintings = async () => {
-    setDownloading(true);
-    setError(null);
-    setProgress(0);
 
-    try {
-      // Check if data already exists
-      const isInitialized = await mtgjsonInitService.isInitialized();
-      if (isInitialized) {
-        const proceed = confirm('MTGJSON data already exists. Download fresh copy?');
-        if (!proceed) {
-          setDownloading(false);
-          return;
-        }
-      }
-
-      // Set up progress tracking
-      const progressHandler = (progressInfo: InitializationProgress) => {
-        setProgress(progressInfo.progress);
-        
-        if (progressInfo.stage === 'error') {
-          setError(progressInfo.error || 'Initialization failed');
-        }
-      };
-
-      mtgjsonInitService.onProgress(progressHandler);
-
-      try {
-        // Initialize MTGJSON data
-        const result = await mtgjsonInitService.initialize(true); // Force refresh
-        
-        if (result.success) {
-          console.log('MTGJSON initialization complete:', result.stats);
-          await loadStats();
-        } else {
-          setError(result.error || 'Initialization failed');
-        }
-      } finally {
-        mtgjsonInitService.offProgress(progressHandler);
-      }
-    } catch (err) {
-      console.error('Initialization failed:', err);
-      setError(err instanceof Error ? err.message : 'Initialization failed');
-    } finally {
-      setDownloading(false);
-      setProgress(0);
-    }
-  };
 
   const handleClearMappingCache = async () => {
     if (!confirm('Clear all cached card mappings? This will require re-mapping cards.')) {
@@ -308,9 +258,9 @@ export function CardMappingManager() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Card Mapping Manager</h2>
+          <h2 className="text-2xl font-bold text-foreground">Card Mapping & Testing</h2>
           <p className="text-muted-foreground">
-            Manage MTGJSON data and card mappings between Scryfall and MTGJSON
+            Manage card mappings, cache, and test MTGJSON integration
           </p>
         </div>
         <button
@@ -680,41 +630,18 @@ export function CardMappingManager() {
 
       {/* Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Data Management */}
+        {/* Cache Management */}
         <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Data Management</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Cache Management</h3>
           
           <div className="space-y-3">
-            <button
-              onClick={handleDownloadAllPrintings}
-              disabled={downloading || loading}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-            >
-              {downloading ? (
-                <>
-                  <LoadingSpinner />
-                  <span>Downloading... {progress}%</span>
-                </>
-              ) : (
-                <>
-                  <Download className="h-4 w-4" />
-                  <span>Initialize MTGJSON Data</span>
-                </>
-              )}
-            </button>
-
-            {downloading && (
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            )}
-
+            <p className="text-sm text-muted-foreground">
+              Manage card mapping cache and cached data.
+            </p>
+            
             <button
               onClick={handleClearMappingCache}
-              disabled={loading || downloading}
+              disabled={loading}
               className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50"
             >
               <RefreshCw className="h-4 w-4" />
@@ -723,12 +650,19 @@ export function CardMappingManager() {
 
             <button
               onClick={handleClearAllData}
-              disabled={loading || downloading}
+              disabled={loading}
               className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
             >
               <Trash2 className="h-4 w-4" />
-              <span>Clear All Data</span>
+              <span>Clear All MTGJSON Data</span>
             </button>
+
+            {!storageStats && (
+              <div className="flex items-center space-x-2 text-amber-600 bg-amber-50 p-3 rounded-lg">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm">No MTGJSON data found - initialize data first</span>
+              </div>
+            )}
           </div>
         </div>
 

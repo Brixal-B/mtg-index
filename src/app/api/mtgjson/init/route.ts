@@ -14,7 +14,8 @@ const progressMap = new Map<string, InitProgress>();
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, sessionId } = await request.json();
+    const body = await request.json();
+    const { action, sessionId } = body;
     
     if (action === 'start') {
       // Start the initialization process
@@ -55,7 +56,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'update_progress' && sessionId) {
-      const body = await request.json();
       const { step, progress, status, message, bytesDownloaded, totalBytes } = body;
       
       progressMap.set(sessionId, {
@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'complete' && sessionId) {
-      const body = await request.json();
       const { totalCards } = body;
       
       progressMap.set(sessionId, {
@@ -167,6 +166,15 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('sessionId');
   const action = searchParams.get('action');
+  
+  if (action === 'download_config' && sessionId) {
+    const config = progressMap.get(`${sessionId}_download_config`);
+    if (config) {
+      return NextResponse.json({ success: true, config });
+    } else {
+      return NextResponse.json({ success: false, message: 'Download config not found' });
+    }
+  }
   
   if (action === 'data' && sessionId) {
     const data = progressMap.get(`${sessionId}_data`);

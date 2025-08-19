@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Search, TrendingUp, TrendingDown, Edit3, DollarSign, Upload } from 'lucide-react';
+import { Plus, Search, TrendingUp, TrendingDown, Edit3, DollarSign } from 'lucide-react';
 import { Portfolio, PortfolioCard } from '@/lib/types';
 import { savePortfolio } from '@/lib/utils/localStorage';
 import { AddCardModal } from './AddCardModal';
 import { PortfolioCardItem } from './PortfolioCardItem';
-import { CsvUploadModal } from './CsvUploadModal';
+import { TransactionHistory } from './TransactionHistory';
 
 interface PortfolioOverviewProps {
   portfolio: Portfolio;
@@ -15,7 +15,6 @@ interface PortfolioOverviewProps {
 
 export function PortfolioOverview({ portfolio, onPortfolioUpdated }: PortfolioOverviewProps) {
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  const [showCsvUploadModal, setShowCsvUploadModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'value' | 'performance' | 'quantity'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -307,12 +306,20 @@ export function PortfolioOverview({ portfolio, onPortfolioUpdated }: PortfolioOv
         </div>
       )}
 
+      {/* Transaction History */}
+      <TransactionHistory 
+        portfolioId={portfolio.id}
+        className="mt-6"
+      />
+
       {/* Add Card Modal */}
       <AddCardModal
         isOpen={showAddCardModal}
         onClose={() => setShowAddCardModal(false)}
         onAddCard={handleAddCard}
       />
+
+
     </div>
   );
 }

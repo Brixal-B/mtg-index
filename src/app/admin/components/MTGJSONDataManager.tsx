@@ -15,6 +15,13 @@ import {
 } from 'lucide-react';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 
+// Extend window to prevent multiple simultaneous downloads
+declare global {
+  interface Window {
+    mtgjsonDownloadInProgress?: boolean;
+  }
+}
+
 interface InitProgress {
   step: string;
   progress: number;
@@ -78,6 +85,13 @@ export function MTGJSONDataManager() {
 
   const startClientSideDownload = async (sessionId: string) => {
     try {
+      // Prevent multiple simultaneous downloads
+      if (window.mtgjsonDownloadInProgress) {
+        console.log('Download already in progress, skipping...');
+        return;
+      }
+      window.mtgjsonDownloadInProgress = true;
+
       // Get download configuration from server
       const configResponse = await fetch(`/api/mtgjson/init?action=download_config&sessionId=${sessionId}`);
       const configResult = await configResponse.json();
@@ -113,6 +127,7 @@ export function MTGJSONDataManager() {
 
       const chunks: Uint8Array[] = [];
       let receivedLength = 0;
+      let lastProgressUpdate = 0;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -124,14 +139,25 @@ export function MTGJSONDataManager() {
 
         const downloadProgress = Math.min(30 + (receivedLength / totalBytes) * 50, 80);
 
-        await updateServerProgress(sessionId, {
-          step: 'downloading',
-          progress: downloadProgress,
-          status: 'downloading',
-          message: `Downloaded ${(receivedLength / 1024 / 1024).toFixed(1)}MB of ${(totalBytes / 1024 / 1024).toFixed(1)}MB...`,
-          bytesDownloaded: receivedLength,
-          totalBytes
-        });
+        // Only update progress every 10% or every 10MB to avoid flooding the API
+        const progressPercent = Math.floor(downloadProgress);
+        const megabytesReceived = Math.floor(receivedLength / (1024 * 1024));
+        
+        // Much more aggressive throttling - only update every 10% AND every 10MB
+        if (progressPercent >= lastProgressUpdate + 10 && megabytesReceived % 10 === 0) {
+          lastProgressUpdate = progressPercent;
+          
+          console.log(`Progress update: ${progressPercent}% (${megabytesReceived}MB)`);
+          
+          await updateServerProgress(sessionId, {
+            step: 'downloading',
+            progress: downloadProgress,
+            status: 'downloading',
+            message: `Downloaded ${(receivedLength / 1024 / 1024).toFixed(1)}MB of ${(totalBytes / 1024 / 1024).toFixed(1)}MB...`,
+            bytesDownloaded: receivedLength,
+            totalBytes
+          });
+        }
       }
 
       // Combine chunks
@@ -188,6 +214,9 @@ export function MTGJSONDataManager() {
       console.error('Client-side download error:', err);
       setError(err instanceof Error ? err.message : 'Failed to download MTGJSON data');
       setIsInitializing(false);
+    } finally {
+      // Always clear the download flag
+      window.mtgjsonDownloadInProgress = false;
     }
   };
 
@@ -447,7 +476,7 @@ export function MTGJSONDataManager() {
           
           <button
             onClick={stats?.isInitialized ? checkDataStatus : handleInitialize}
-            disabled={isInitializing}
+            disabled={isInitializing || true} // TEMPORARILY DISABLED - API flood issue
             className="flex items-center space-x-2 px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors disabled:opacity-50"
           >
             {isInitializing ? (
