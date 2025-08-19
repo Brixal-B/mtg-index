@@ -6,6 +6,9 @@ const nextConfig = {
     basePath: '/mtg-index',
     assetPrefix: '/mtg-index',
     trailingSlash: true,
+    env: {
+      NEXT_PUBLIC_STATIC_EXPORT: 'true',
+    },
   } : {}),
   images: {
     unoptimized: true,

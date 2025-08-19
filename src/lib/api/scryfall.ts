@@ -3,6 +3,15 @@ import { MTGCard } from '@/lib/types';
 const SCRYFALL_API_BASE = 'https://api.scryfall.com';
 const API_PROXY_BASE = '/api/cards'; // Our Next.js API routes
 
+// Use direct Scryfall API when in static export mode
+function getApiBase(): string {
+  // Check if we're in static export mode (API routes not available)
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true') {
+    return SCRYFALL_API_BASE;
+  }
+  return API_PROXY_BASE;
+}
+
 // Rate limiting: Scryfall requests that applications sleep 50-100ms between requests
 // Using 200ms to be more conservative and avoid 429 errors
 const RATE_LIMIT_DELAY = 200;
@@ -19,7 +28,16 @@ async function rateLimitedFetch(url: string): Promise<Response> {
   lastRequestTime = Date.now();
   
   try {
-    const response = await fetch(url);
+    const headers: HeadersInit = {
+      'Accept': 'application/json',
+    };
+    
+    // Add User-Agent header when calling Scryfall directly
+    if (url.startsWith(SCRYFALL_API_BASE)) {
+      headers['User-Agent'] = 'MTG-Index-App/1.0';
+    }
+    
+    const response = await fetch(url, { headers });
     if (!response.ok) {
       // Try to get more details from the response
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -127,7 +145,9 @@ export async function searchCards(query: string, options: SearchOptions = {}): P
       dir: dir,
     });
 
-    const url = `${API_PROXY_BASE}/search?${searchParams}`;
+    const apiBase = getApiBase();
+    const endpoint = apiBase === SCRYFALL_API_BASE ? `/cards/search?${searchParams}` : `/search?${searchParams}`;
+    const url = `${apiBase}${endpoint}`;
     const response = await rateLimitedFetch(url);
     
     if (!response.ok) {
@@ -219,7 +239,9 @@ export async function advancedSearch(
 
 export async function getCard(cardId: string): Promise<MTGCard> {
   try {
-    const url = `${API_PROXY_BASE}/${cardId}`;
+    const apiBase = getApiBase();
+    const endpoint = apiBase === SCRYFALL_API_BASE ? `/cards/${cardId}` : `/${cardId}`;
+    const url = `${apiBase}${endpoint}`;
     const response = await rateLimitedFetch(url);
     
     if (!response.ok) {
@@ -325,7 +347,9 @@ export async function getCardsBySet(setCode: string, options: SearchOptions = {}
 // Get autocomplete suggestions for card names
 export async function getCardSuggestions(partialName: string): Promise<string[]> {
   try {
-    const url = `${API_PROXY_BASE}/autocomplete?q=${encodeURIComponent(partialName)}`;
+    const apiBase = getApiBase();
+    const endpoint = apiBase === SCRYFALL_API_BASE ? `/cards/autocomplete?q=${encodeURIComponent(partialName)}` : `/autocomplete?q=${encodeURIComponent(partialName)}`;
+    const url = `${apiBase}${endpoint}`;
     const response = await rateLimitedFetch(url);
     const data = await response.json();
     

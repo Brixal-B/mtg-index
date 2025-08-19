@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const SCRYFALL_API_BASE = 'https://api.scryfall.com';
 
+// Required for static export
+export const dynamic = 'force-static';
+export const revalidate = 300; // Revalidate every 5 minutes
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
