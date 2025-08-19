@@ -6,7 +6,7 @@ import { Portfolio } from '@/lib/types';
 import { Info } from 'lucide-react';
 import { useBatchPriceTrends } from '@/lib/hooks/usePriceTrends';
 import { PriceTrendAnalysis } from '@/lib/utils/priceAnalysis';
-import { marketDataService } from '@/lib/services/marketDataService';
+
 
 interface PortfolioOverviewChartProps {
   portfolios: Portfolio[];
@@ -26,7 +26,7 @@ export function PortfolioOverviewChart({ portfolios, timeframe }: PortfolioOverv
       portfolio.cards.map(portfolioCard => portfolioCard.card.id)
     );
     // Remove duplicates
-    return [...new Set(allCards)];
+    return Array.from(new Set(allCards));
   }, [portfolios]);
 
   // Use the new batch price trends hook
@@ -53,8 +53,7 @@ export function PortfolioOverviewChart({ portfolios, timeframe }: PortfolioOverv
     const currentTotalValue = portfolios.reduce((sum, p) => sum + p.totalValue, 0);
     const currentTotalCost = portfolios.reduce((sum, p) => sum + p.totalCost, 0);
 
-    // Generate market trends for correlation
-    const marketTrends = marketDataService.generateMarketTrends(timeframe);
+    // No market trends available without external data source
 
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now);
@@ -94,15 +93,9 @@ export function PortfolioOverviewChart({ portfolios, timeframe }: PortfolioOverv
         });
       });
 
-      // Use market correlation for more realistic estimation when no trend data is available
+      // Without real trend data, just use current value (no historical estimation)
       if (!hasRealData) {
-        const marketTrendPoint = marketTrends.find(trend => trend.date === dateString);
-        const marketMultiplier = marketTrendPoint 
-          ? marketTrendPoint.marketIndex / 100 // Normalize to 1.0 baseline
-          : 1;
-
-        // Apply market correlation to portfolio value
-        totalValue = currentTotalValue * marketMultiplier;
+        totalValue = currentTotalValue;
       }
       
       const simulatedCost = currentTotalCost; // Cost remains constant
@@ -116,9 +109,9 @@ export function PortfolioOverviewChart({ portfolios, timeframe }: PortfolioOverv
     }
 
     return data;
-  }, [portfolios, timeframe, isClient, trendsMap, usingRealPrices]);
+  }, [portfolios, timeframe, isClient, trendsMap]);
 
-  const formatCurrency = (value: number) => `$${value.toFixed(0)}`;
+  const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {

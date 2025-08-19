@@ -195,33 +195,35 @@ async function loadAllPricesData(): Promise<Record<string, MTGJSONCardPrices> | 
       return allPricesCache;
     }
 
-    // Fetch fresh AllPrices data
-    console.log('Fetching fresh AllPrices data from MTGJSON...');
-    const response = await rateLimitedFetch('https://mtgjson.com/api/v5/AllPrices.json');
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch AllPrices: ${response.status} ${response.statusText}`);
+    // Check if data was manually initialized via Admin panel
+    if (cachedAllPrices) {
+      console.log('Using manually initialized MTGJSON data');
+      allPricesCache = cachedAllPrices.data;
+      return allPricesCache;
     }
 
-    // Parse the JSON response
-    const allPricesResponse = await response.json();
+    // The AllPrices.json file is very large (200+ MB) and can cause issues
+    // Data should be initialized via Admin panel for better user experience
+    console.warn('AllPrices.json not found - use Admin panel to initialize MTGJSON data');
+    console.log('Price history features will use trend-based simulation until MTGJSON data is loaded');
     
-    if (!allPricesResponse.data) {
-      throw new Error('Invalid AllPrices response format');
-    }
+    return null;
 
-    // Cache the data
-    const cacheData = {
-      data: allPricesResponse.data,
-      timestamp: Date.now(),
-      version: allPricesResponse.meta?.version || 'unknown',
-    };
-
-    setCachedData('mtgjson-all-prices-data', cacheData);
-    allPricesCache = allPricesResponse.data;
-
-    console.log(`Loaded AllPrices data for ${Object.keys(allPricesCache || {}).length} cards`);
-    return allPricesCache;
+    // TODO: Re-enable when we have proper chunked downloading
+    // console.log('Fetching fresh AllPrices data from MTGJSON...');
+    // const response = await rateLimitedFetch('https://mtgjson.com/api/v5/AllPrices.json');
+    // 
+    // if (!response.ok) {
+    //   throw new Error(`Failed to fetch AllPrices: ${response.status} ${response.statusText}`);
+    // }
+    //
+    // // Parse the JSON response with better error handling
+    // let allPricesResponse;
+    // try {
+    //   allPricesResponse = await response.json();
+    // } catch (jsonError) {
+    //   throw new Error(`Failed to parse AllPrices JSON: ${jsonError.message}. The file may be corrupted or incomplete.`);
+    // }
   } catch (error) {
     console.error('Failed to load AllPrices data:', error);
     
@@ -345,7 +347,11 @@ export async function getPriceHistoryForCard(scryfallCard: MTGCard): Promise<Pri
       provider: 'mtgjson',
     };
   } catch (error) {
-    console.error(`Error getting price history for ${scryfallCard.name}:`, error);
+    // Don't spam console with AllPrices errors - this is expected until data is loaded
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (!errorMessage.includes('AllPrices')) {
+      console.error(`Error getting price history for ${scryfallCard.name}:`, error);
+    }
     return null;
   }
 }

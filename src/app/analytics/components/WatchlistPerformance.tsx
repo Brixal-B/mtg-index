@@ -7,7 +7,7 @@ import { MTGCard } from '@/lib/types';
 import { getWatchlist, removeFromWatchlist } from '@/lib/utils/localStorage';
 import { getCard } from '@/lib/api/scryfall';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
-import { marketDataService } from '@/lib/services/marketDataService';
+
 
 interface WatchlistPerformanceProps {
   timeframe: '7d' | '30d' | '90d' | '1y';
@@ -39,28 +39,19 @@ export function WatchlistPerformance({ timeframe }: WatchlistPerformanceProps) {
           return;
         }
 
-        // Generate realistic market trends for context
-        const marketTrends = marketDataService.generateMarketTrends(timeframe);
-
-        // Load card data for watchlist items
+        // Load card data for watchlist items - no simulated price changes
         const cardPromises = watchlistIds.slice(0, 10).map(async (cardId) => {
           try {
             const card = await getCard(cardId);
             
-            // Use the market data service for realistic price simulation
-            const priceSimulation = marketDataService.simulateCardPriceChange(
-              card, 
-              timeframe, 
-              marketTrends
-            );
-
+            // No price simulation - only current price data
             return {
               card,
-              priceChange: priceSimulation.priceChange,
-              priceChangePercent: priceSimulation.priceChangePercent,
-              trend: priceSimulation.trend,
-              volatility: priceSimulation.volatility,
-              confidence: priceSimulation.confidence,
+              priceChange: 0,
+              priceChangePercent: 0,
+              trend: 'stable' as 'up' | 'down' | 'stable',
+              volatility: 0,
+              confidence: 0,
             };
           } catch (err) {
             console.error(`Error loading card ${cardId}:`, err);

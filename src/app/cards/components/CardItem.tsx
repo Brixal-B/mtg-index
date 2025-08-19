@@ -53,7 +53,7 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
   const [imageError, setImageError] = useState(false);
   
   // Fetch price trends for this card
-  const { trends, loading: trendsLoading, isUsingMockData } = usePriceTrends(card.id, {
+  const { trends, loading: trendsLoading } = usePriceTrends(card.id, {
     enabled: true // Enable trend fetching for all cards
   });
 
@@ -226,23 +226,13 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
           
           <div className="flex items-center space-x-1">
             {/* Price trend indicator */}
-            {!trendsLoading && trends?.trend7d && (
-              <div className="flex items-center space-x-1">
-                <CompactPriceTrend 
-                  trend={trends.trend7d} 
-                  timeframe="7d"
-                  className="opacity-80"
-                />
-                {isUsingMockData && (
-                  <div 
-                    className="px-1 py-0.5 rounded text-xs bg-blue-100 text-blue-700 border border-blue-200"
-                    title="Demo data - API unavailable"
-                  >
-                    Demo
-                  </div>
-                )}
-              </div>
-            )}
+                      {!trendsLoading && trends?.trend7d && (
+            <CompactPriceTrend 
+              trend={trends.trend7d} 
+              timeframe="7d" 
+              className="opacity-80" 
+            />
+          )}
             
             {isWatched && (
               <Star className="h-4 w-4 text-yellow-500 fill-current" />
