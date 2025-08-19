@@ -1099,55 +1099,53 @@ if (typeof window !== 'undefined') {
 }
 
 // Export individual functions for compatibility with existing code
-export const {
-  // Portfolio functions
-  getPortfolios,
-  savePortfolio,
-  updatePortfolio,
-  deletePortfolio,
-  getPortfolioById,
-  addCardToPortfolioWithTracking,
-  removeCardFromPortfolioWithTracking,
-  
-  // Watchlist functions
-  getWatchlist,
-  addToWatchlist,
-  removeFromWatchlist,
-  isInWatchlist,
-  
-  // Settings functions
-  getSettings,
-  updateSettings,
-  resetSettings,
-  getPreferences,
-  savePreferences,
-  
-  // Storage management
-  clearAllData,
-  exportData,
-  importData,
-  getStorageStats,
-  getStorageUsage,
-  
-  // Cache functions
-  getPriceHistory,
-  setPriceHistory,
-  removePriceHistory,
-  getCardMapping,
-  setCardMapping,
-  removeCardMapping,
-  getMetadata,
-  setMetadata,
-  clearExpiredEntries,
-  clearAllCache,
-  getCacheStats,
-  
-  // Cleanup functions
-  cleanupLocalStorage,
-  getLocalStorageUsage,
-  formatBytes,
-  emergencyCleanup,
-  isQuotaExceeded,
-} = storageManager;
+// Portfolio functions
+export const getPortfolios = () => storageManager.getPortfolios();
+export const savePortfolio = (portfolio: Portfolio) => storageManager.savePortfolio(portfolio);
+export const updatePortfolio = (portfolio: Portfolio) => storageManager.updatePortfolio(portfolio);
+export const deletePortfolio = (portfolioId: string) => storageManager.deletePortfolio(portfolioId);
+export const getPortfolioById = (portfolioId: string) => storageManager.getPortfolioById(portfolioId);
+export const addCardToPortfolioWithTracking = (portfolioId: string, card: import('@/lib/types').PortfolioCard) => storageManager.addCardToPortfolioWithTracking(portfolioId, card);
+export const removeCardFromPortfolioWithTracking = (portfolioId: string, cardId: string, foil: boolean, condition: string, quantityToRemove?: number) => storageManager.removeCardFromPortfolioWithTracking(portfolioId, cardId, foil, condition, quantityToRemove);
+
+// Watchlist functions
+export const getWatchlist = () => storageManager.getWatchlist();
+export const addToWatchlist = (cardId: string) => storageManager.addToWatchlist(cardId);
+export const removeFromWatchlist = (cardId: string) => storageManager.removeFromWatchlist(cardId);
+export const isInWatchlist = (cardId: string) => storageManager.isInWatchlist(cardId);
+
+// Settings functions
+export const getSettings = () => storageManager.getSettings();
+export const updateSettings = (settings: Partial<UserPreferences>) => storageManager.updateSettings(settings);
+export const resetSettings = () => storageManager.resetSettings();
+export const getPreferences = () => storageManager.getPreferences();
+export const savePreferences = (preferences: Partial<UserPreferences>) => storageManager.savePreferences(preferences);
+
+// Storage management
+export const clearAllData = () => storageManager.clearAllData();
+export const exportData = () => storageManager.exportData();
+export const importData = (jsonData: string) => storageManager.importData(jsonData);
+export const getStorageStats = () => storageManager.getStorageStats();
+export const getStorageUsage = () => storageManager.getStorageUsage();
+
+// Cache functions
+export const getPriceHistory = (uuid: string) => storageManager.getPriceHistory(uuid);
+export const setPriceHistory = (uuid: string, priceHistory: PriceHistory) => storageManager.setPriceHistory(uuid, priceHistory);
+export const removePriceHistory = (uuid: string) => storageManager.removePriceHistory(uuid);
+export const getCardMapping = (scryfallId: string) => storageManager.getCardMapping(scryfallId);
+export const setCardMapping = (scryfallId: string, mtgjsonCard: MTGJSONCard) => storageManager.setCardMapping(scryfallId, mtgjsonCard);
+export const removeCardMapping = (scryfallId: string) => storageManager.removeCardMapping(scryfallId);
+export const getMetadata = () => storageManager.getMetadata();
+export const setMetadata = (metadata: CacheMetadata) => storageManager.setMetadata(metadata);
+export const clearExpiredEntries = () => storageManager.clearExpiredEntries();
+export const clearAllCache = () => storageManager.clearAllCache();
+export const getCacheStats = () => storageManager.getCacheStats();
+
+// Cleanup functions
+export const cleanupLocalStorage = () => storageManager.cleanupLocalStorage();
+export const getLocalStorageUsage = () => storageManager.getLocalStorageUsage();
+export const formatBytes = (bytes: number) => storageManager.formatBytes(bytes);
+export const emergencyCleanup = () => storageManager.emergencyCleanup();
+export const isQuotaExceeded = () => storageManager.isQuotaExceeded();
 
 export default storageManager;
