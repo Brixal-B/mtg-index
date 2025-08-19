@@ -24,6 +24,7 @@ const DEFAULT_SETTINGS: UserPreferences = {
   defaultCurrency: 'usd',
   showFoilPrices: false,
   defaultCondition: 'near_mint',
+  defaultBuyPricePercentage: 90, // Default to 90% of market price
   priceAlerts: [],
   dashboardLayout: ['portfolio-overview', 'top-performers', 'price-alerts', 'market-trends'],
   theme: 'dark',

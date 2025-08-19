@@ -6,7 +6,7 @@ import { X, Star, Plus, DollarSign, TrendingUp, Calendar, Palette, Zap } from 'l
 import { MTGCard } from '@/lib/types';
 import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '@/lib/storage';
 import { getPriceHistory } from '@/lib/api/scryfall';
-import { EnhancedPriceChart } from '@/app/analytics/components/EnhancedPriceChart';
+import { PriceHistoryChart } from '@/app/components/PriceHistoryChart';
 
 interface CardModalProps {
   card: MTGCard;

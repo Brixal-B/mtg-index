@@ -245,6 +245,44 @@ function GeneralSettings({
           </select>
         </SettingsField>
 
+        {/* Buy Price Estimation */}
+        <SettingsField
+          label="Default Buy Price Percentage"
+          description="Automatically calculate buy prices as a percentage of market price when adding cards."
+        >
+          <div className="space-y-3">
+            <div className="flex items-center space-x-4">
+              <input
+                type="range"
+                min="50"
+                max="100"
+                step="5"
+                value={preferences.defaultBuyPricePercentage || 90}
+                onChange={(e) => onPreferenceChange('defaultBuyPricePercentage', parseInt(e.target.value))}
+                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                style={{
+                  background: `linear-gradient(to right, #3B82F6 0%, #3B82F6 ${(preferences.defaultBuyPricePercentage || 90) - 50}%, #E5E7EB ${(preferences.defaultBuyPricePercentage || 90) - 50}%, #E5E7EB 100%)`
+                }}
+              />
+              <div className="flex items-center space-x-2 min-w-[100px]">
+                <input
+                  type="number"
+                  min="50"
+                  max="100"
+                  step="5"
+                  value={preferences.defaultBuyPricePercentage || 90}
+                  onChange={(e) => onPreferenceChange('defaultBuyPricePercentage', parseInt(e.target.value))}
+                  className="w-16 px-2 py-1 text-sm border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <span className="text-sm text-muted-foreground">%</span>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              For a $100 card, the default buy price would be ${((preferences.defaultBuyPricePercentage || 90) / 100 * 100).toFixed(2)}
+            </div>
+          </div>
+        </SettingsField>
+
         {/* Show Foil Prices */}
         <SettingsField
           label="Show Foil Prices"

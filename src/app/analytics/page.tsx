@@ -7,6 +7,7 @@ import { getPortfolios, getWatchlist } from '@/lib/storage';
 import { getCard } from '@/lib/api/scryfall';
 import { PortfolioOverviewChart } from './components/PortfolioOverviewChart';
 import { PerformanceChart } from './components/PerformanceChart';
+import { EnhancedPriceChart } from './components/EnhancedPriceChart';
 import { DiversificationChart } from './components/DiversificationChart';
 import { TopPerformersTable } from './components/TopPerformersTable';
 import { MarketTrendsChart } from './components/MarketTrendsChart';
@@ -258,10 +259,12 @@ export default function AnalyticsPage() {
           timeframe={selectedTimeframe}
         />
 
-        {/* Performance Chart */}
-        <PerformanceChart 
+        {/* Enhanced Price Chart */}
+        <EnhancedPriceChart 
           portfolios={portfolios}
           timeframe={selectedTimeframe}
+          showIndividualCards={true}
+          maxCardsToShow={5}
         />
 
         {/* Diversification Chart */}

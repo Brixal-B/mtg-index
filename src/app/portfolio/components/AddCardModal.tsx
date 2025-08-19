@@ -16,6 +16,8 @@ import { searchCards } from '@/lib/api/scryfall';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 import { ErrorMessage } from '@/app/components/ErrorMessage';
 import { CardItem } from '@/app/cards/components/CardItem';
+import { getPreferences } from '@/lib/storage';
+import { Calculator, Percent } from 'lucide-react';
 
 interface AddCardModalProps {
   isOpen: boolean;
@@ -95,10 +97,13 @@ export function AddCardModal({ isOpen, onClose, onAddCard }: AddCardModalProps) 
 
   const handleCardSelect = (card: MTGCard) => {
     setSelectedCard(card);
-    // Auto-fill purchase price with current price if available
+    // Auto-fill purchase price based on user's default buy price percentage
+    const preferences = getPreferences();
     const currentPrice = card.prices.usd || card.prices.eur || 0;
     if (currentPrice > 0) {
-      setPurchasePrice(currentPrice.toString());
+      const buyPricePercentage = preferences.defaultBuyPricePercentage || 90;
+      const estimatedBuyPrice = (currentPrice * buyPricePercentage) / 100;
+      setPurchasePrice(estimatedBuyPrice.toFixed(2));
     }
   };
 
@@ -293,15 +298,23 @@ export function AddCardModal({ isOpen, onClose, onAddCard }: AddCardModalProps) 
                   <label className="block text-sm font-medium text-foreground">
                     Purchase Price (USD) *
                   </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={purchasePrice}
-                    onChange={(e) => setPurchasePrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={purchasePrice}
+                      onChange={(e) => setPurchasePrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                  {selectedCard && selectedCard.prices.usd && (
+                    <BuyPriceEstimator
+                      marketPrice={selectedCard.prices.usd}
+                      onPriceSelect={setPurchasePrice}
+                    />
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -377,6 +390,61 @@ export function AddCardModal({ isOpen, onClose, onAddCard }: AddCardModalProps) 
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Buy Price Estimator Component
+interface BuyPriceEstimatorProps {
+  marketPrice: number;
+  onPriceSelect: (price: string) => void;
+}
+
+function BuyPriceEstimator({ marketPrice, onPriceSelect }: BuyPriceEstimatorProps) {
+  const preferences = getPreferences();
+  const defaultPercentage = preferences.defaultBuyPricePercentage || 90;
+  
+  const percentageOptions = [70, 80, 85, 90, 95, 100];
+  
+  return (
+    <div className="mt-2 p-3 bg-accent rounded-lg border border-border">
+      <div className="flex items-center space-x-2 mb-2">
+        <Calculator className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">Quick Price Calculator</span>
+      </div>
+      
+      <div className="text-xs text-muted-foreground mb-3">
+        Market Price: ${marketPrice.toFixed(2)} • Current setting: {defaultPercentage}%
+      </div>
+      
+      <div className="grid grid-cols-3 gap-2">
+        {percentageOptions.map(percentage => {
+          const calculatedPrice = (marketPrice * percentage) / 100;
+          const isDefault = percentage === defaultPercentage;
+          
+          return (
+            <button
+              key={percentage}
+              onClick={() => onPriceSelect(calculatedPrice.toFixed(2))}
+              className={`flex flex-col items-center p-2 rounded text-xs transition-colors ${
+                isDefault
+                  ? 'bg-primary text-primary-foreground border border-primary'
+                  : 'bg-background hover:bg-accent border border-border hover:border-primary'
+              }`}
+            >
+              <div className="flex items-center space-x-1">
+                <Percent className="h-3 w-3" />
+                <span className="font-medium">{percentage}%</span>
+              </div>
+              <span className="font-mono">${calculatedPrice.toFixed(2)}</span>
+            </button>
+          );
+        })}
+      </div>
+      
+      <div className="mt-2 text-xs text-muted-foreground">
+        Click a percentage to set that price. Adjust default percentage in Settings.
       </div>
     </div>
   );
