@@ -236,21 +236,27 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
     const portfolioCards: PortfolioCard[] = successfulImports.map(result => {
       const card = result.card!;
       
-      // Use Scryfall price as purchase price - prioritize foil price if card is foil
-      let purchasePrice = 0;
-      if (result.foil && card.prices.usdFoil) {
-        purchasePrice = card.prices.usdFoil;
-      } else if (card.prices.usd) {
-        purchasePrice = card.prices.usd;
-      } else if (card.prices.eur) {
-        purchasePrice = card.prices.eur;
+      // Use CSV purchase price if provided, otherwise fall back to Scryfall price
+      let purchasePrice = result.purchasePrice;
+      
+      // If no purchase price in CSV, use Scryfall price - prioritize foil price if card is foil
+      if (!purchasePrice || purchasePrice === 0) {
+        if (result.foil && card.prices.usdFoil) {
+          purchasePrice = card.prices.usdFoil;
+        } else if (card.prices.usd) {
+          purchasePrice = card.prices.usd;
+        } else if (card.prices.eur) {
+          purchasePrice = card.prices.eur;
+        } else {
+          purchasePrice = 0;
+        }
       }
 
       return {
         cardId: card.id,
         card: card,
         quantity: result.quantity,
-        purchasePrice: purchasePrice, // Use fetched Scryfall price as purchase price
+        purchasePrice: purchasePrice,
         purchaseDate: result.purchaseDate,
         condition: mapCondition(result.condition),
         foil: result.foil,

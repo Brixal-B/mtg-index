@@ -123,6 +123,132 @@ export function getPortfolioById(portfolioId: string): Portfolio | null {
   return portfolios.find(p => p.id === portfolioId) || null;
 }
 
+// Enhanced Portfolio Operations with Timeline Tracking
+export function addCardToPortfolioWithTracking(
+  portfolioId: string, 
+  card: import('@/lib/types').PortfolioCard
+): void {
+  const portfolio = getPortfolioById(portfolioId);
+  if (!portfolio) return;
+
+  const existingCardIndex = portfolio.cards.findIndex(
+    c => c.cardId === card.cardId && c.foil === card.foil && c.condition === card.condition
+  );
+
+  let previousQuantity = 0;
+  let updatedCards: import('@/lib/types').PortfolioCard[];
+  
+  if (existingCardIndex >= 0) {
+    // Update existing card quantity
+    previousQuantity = portfolio.cards[existingCardIndex].quantity;
+    updatedCards = portfolio.cards.map((c, index) =>
+      index === existingCardIndex
+        ? { ...c, quantity: c.quantity + card.quantity }
+        : c
+    );
+  } else {
+    // Add new card
+    updatedCards = [...portfolio.cards, card];
+  }
+
+  // Record transaction
+  const PortfolioTimelineService = require('@/lib/services/portfolioTimelineService').PortfolioTimelineService;
+  PortfolioTimelineService.recordTransaction(
+    portfolioId,
+    'add',
+    card.cardId,
+    card.quantity,
+    card.purchasePrice,
+    previousQuantity,
+    `Added ${card.quantity} ${card.card.name}${card.foil ? ' (Foil)' : ''}`
+  );
+
+  // Update portfolio
+  const updatedPortfolio = recalculatePortfolioTotals({
+    ...portfolio,
+    cards: updatedCards
+  });
+  
+  savePortfolio(updatedPortfolio);
+}
+
+export function removeCardFromPortfolioWithTracking(
+  portfolioId: string, 
+  cardId: string, 
+  foil: boolean, 
+  condition: string,
+  quantityToRemove?: number
+): void {
+  const portfolio = getPortfolioById(portfolioId);
+  if (!portfolio) return;
+
+  const cardIndex = portfolio.cards.findIndex(
+    c => c.cardId === cardId && c.foil === foil && c.condition === condition
+  );
+
+  if (cardIndex === -1) return;
+
+  const existingCard = portfolio.cards[cardIndex];
+  const previousQuantity = existingCard.quantity;
+  const removeQuantity = quantityToRemove || previousQuantity;
+
+  let updatedCards: import('@/lib/types').PortfolioCard[];
+  
+  if (removeQuantity >= previousQuantity) {
+    // Remove entire card entry
+    updatedCards = portfolio.cards.filter((_, index) => index !== cardIndex);
+  } else {
+    // Reduce quantity
+    updatedCards = portfolio.cards.map((c, index) =>
+      index === cardIndex
+        ? { ...c, quantity: c.quantity - removeQuantity }
+        : c
+    );
+  }
+
+  // Record transaction
+  const PortfolioTimelineService = require('@/lib/services/portfolioTimelineService').PortfolioTimelineService;
+  PortfolioTimelineService.recordTransaction(
+    portfolioId,
+    'remove',
+    cardId,
+    -removeQuantity,
+    existingCard.purchasePrice,
+    previousQuantity,
+    `Removed ${removeQuantity} ${existingCard.card.name}${foil ? ' (Foil)' : ''}`
+  );
+
+  // Update portfolio
+  const updatedPortfolio = recalculatePortfolioTotals({
+    ...portfolio,
+    cards: updatedCards
+  });
+  
+  savePortfolio(updatedPortfolio);
+}
+
+// Helper function to recalculate portfolio totals
+function recalculatePortfolioTotals(portfolio: import('@/lib/types').Portfolio): import('@/lib/types').Portfolio {
+  const totalValue = portfolio.cards.reduce((sum, c) => {
+    const currentPrice = c.card.prices.usd || 0;
+    return sum + (currentPrice * c.quantity);
+  }, 0);
+
+  const totalCost = portfolio.cards.reduce((sum, c) => {
+    return sum + (c.purchasePrice * c.quantity);
+  }, 0);
+
+  const performance = totalCost > 0 ? ((totalValue - totalCost) / totalCost) * 100 : 0;
+
+  return {
+    ...portfolio,
+    totalValue,
+    totalCost,
+    performance,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 // Watchlist Management Functions
 export function getWatchlist(): string[] {
   return getFromStorage(STORAGE_KEYS.WATCHLIST, []);

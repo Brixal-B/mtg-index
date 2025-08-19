@@ -11,6 +11,7 @@ import { DiversificationChart } from './components/DiversificationChart';
 import { TopPerformersTable } from './components/TopPerformersTable';
 import { MarketTrendsChart } from './components/MarketTrendsChart';
 import { WatchlistPerformance } from './components/WatchlistPerformance';
+import { AccuratePortfolioTimeline } from './components/AccuratePortfolioTimeline';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 
 export default function AnalyticsPage() {
@@ -242,6 +243,12 @@ export default function AnalyticsPage() {
           );
         })}
       </div>
+
+      {/* Timeline Tracking (Proof of Concept) */}
+      <AccuratePortfolioTimeline 
+        portfolios={portfolios}
+        timeframe={selectedTimeframe}
+      />
 
       {/* Charts Grid */}
       <div className="grid lg:grid-cols-2 gap-6">

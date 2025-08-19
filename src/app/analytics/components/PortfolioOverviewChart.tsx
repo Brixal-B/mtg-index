@@ -3,6 +3,10 @@
 import { useMemo, useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Portfolio } from '@/lib/types';
+import { Info } from 'lucide-react';
+import { useBatchPriceTrends } from '@/lib/hooks/usePriceTrends';
+import { PriceTrendAnalysis } from '@/lib/utils/priceAnalysis';
+
 
 interface PortfolioOverviewChartProps {
   portfolios: Portfolio[];
@@ -16,40 +20,98 @@ export function PortfolioOverviewChart({ portfolios, timeframe }: PortfolioOverv
     setIsClient(true);
   }, []);
 
+  // Get all unique card IDs from portfolios
+  const cardIds = useMemo(() => {
+    const allCards = portfolios.flatMap(portfolio => 
+      portfolio.cards.map(portfolioCard => portfolioCard.card.id)
+    );
+    // Remove duplicates
+    return Array.from(new Set(allCards));
+  }, [portfolios]);
+
+  // Use the new batch price trends hook
+  const { trendsMap, loading: loadingHistories } = useBatchPriceTrends(cardIds);
+
+  // Check if we're using real current prices (even if historical is estimated)
+  const usingRealPrices = useMemo(() => {
+    // We have real current prices from Scryfall, but historical data is estimated
+    return portfolios.length > 0 && portfolios.some(p => p.cards.length > 0);
+  }, [portfolios]);
+
+  const usingEstimatedHistory = useMemo(() => {
+    // Historical portfolio values are estimated based on current prices and trends
+    return true;
+  }, []);
+
   const chartData = useMemo(() => {
     if (!isClient) return [];
     const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365;
     const data = [];
     const now = new Date();
 
-    // Calculate total portfolio value
+    // Calculate current total portfolio value
     const currentTotalValue = portfolios.reduce((sum, p) => sum + p.totalValue, 0);
     const currentTotalCost = portfolios.reduce((sum, p) => sum + p.totalCost, 0);
+
+    // No market trends available without external data source
 
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
+      const dateString = date.toISOString().split('T')[0];
       
-      // Simulate historical values with some random variation
-      // In a real app, this would come from stored historical data
-      const randomFactor = 0.95 + (Math.random() * 0.1); // ±5% variation
-      const daysFactor = 1 - (i / days) * 0.1; // Slight upward trend over time
+      let totalValue = 0;
+      let hasRealData = false;
+
+      // Calculate portfolio value using trend data and mock price changes
+      portfolios.forEach(portfolio => {
+        portfolio.cards.forEach(portfolioCard => {
+          const trends = trendsMap.get(portfolioCard.card.id);
+          const currentPrice = portfolioCard.foil 
+            ? portfolioCard.card.prices.usdFoil || portfolioCard.card.prices.usd || 0
+            : portfolioCard.card.prices.usd || 0;
+          
+          let historicalPrice = currentPrice;
+          
+          if (trends) {
+            // Use trend data to estimate historical price
+            const daysAgo = i;
+            const trend = days <= 7 ? trends.trend7d : trends.trend30d;
+            
+            if (trend) {
+              // Calculate what the price would have been based on the trend
+              const totalChangePercent = trend.changePercent;
+              const dailyChangeRate = Math.pow(1 + (totalChangePercent / 100), 1 / days);
+              
+              // Calculate price at this historical point
+              historicalPrice = currentPrice / Math.pow(dailyChangeRate, daysAgo);
+              hasRealData = true;
+            }
+          }
+          
+          totalValue += historicalPrice * portfolioCard.quantity;
+        });
+      });
+
+      // Without real trend data, just use current value (no historical estimation)
+      if (!hasRealData) {
+        totalValue = currentTotalValue;
+      }
       
-      const simulatedValue = currentTotalValue * randomFactor * daysFactor;
       const simulatedCost = currentTotalCost; // Cost remains constant
       
       data.push({
-        date: date.toISOString().split('T')[0],
-        value: Math.round(simulatedValue * 100) / 100,
+        date: dateString,
+        value: Math.round(totalValue * 100) / 100,
         cost: Math.round(simulatedCost * 100) / 100,
-        gainLoss: Math.round((simulatedValue - simulatedCost) * 100) / 100,
+        gainLoss: Math.round((totalValue - simulatedCost) * 100) / 100,
       });
     }
 
     return data;
-  }, [portfolios, timeframe, isClient]);
+  }, [portfolios, timeframe, isClient, trendsMap]);
 
-  const formatCurrency = (value: number) => `$${value.toFixed(0)}`;
+  const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -70,7 +132,30 @@ export function PortfolioOverviewChart({ portfolios, timeframe }: PortfolioOverv
   return (
     <div className="bg-card border border-border rounded-lg p-6">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-foreground mb-2">Portfolio Value Over Time</h3>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-3">
+            <h3 className="text-lg font-semibold text-foreground">Portfolio Value Over Time</h3>
+            {loadingHistories && (
+              <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+                <Info className="h-3 w-3 animate-spin" />
+                <span>Loading...</span>
+              </div>
+            )}
+
+            {!loadingHistories && usingRealPrices && usingEstimatedHistory && (
+              <div className="flex items-center space-x-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                <Info className="h-3 w-3" />
+                <span>Real Prices, Estimated History</span>
+              </div>
+            )}
+            {!loadingHistories && !usingRealPrices && (
+              <div className="flex items-center space-x-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                <Info className="h-3 w-3" />
+                <span>Simulated Data</span>
+              </div>
+            )}
+          </div>
+        </div>
         <p className="text-sm text-muted-foreground">
           Track your portfolio value and cost basis over the selected timeframe
         </p>

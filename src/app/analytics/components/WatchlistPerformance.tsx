@@ -8,6 +8,7 @@ import { getWatchlist, removeFromWatchlist } from '@/lib/utils/localStorage';
 import { getCard } from '@/lib/api/scryfall';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 
+
 interface WatchlistPerformanceProps {
   timeframe: '7d' | '30d' | '90d' | '1y';
 }
@@ -17,6 +18,8 @@ interface WatchlistCardData {
   priceChange: number;
   priceChangePercent: number;
   trend: 'up' | 'down' | 'stable';
+  volatility: number;
+  confidence: number;
 }
 
 export function WatchlistPerformance({ timeframe }: WatchlistPerformanceProps) {
@@ -36,28 +39,19 @@ export function WatchlistPerformance({ timeframe }: WatchlistPerformanceProps) {
           return;
         }
 
-        // Load card data for watchlist items
+        // Load card data for watchlist items - no simulated price changes
         const cardPromises = watchlistIds.slice(0, 10).map(async (cardId) => {
           try {
             const card = await getCard(cardId);
             
-            // Simulate price change data (in a real app, this would come from historical data)
-            const currentPrice = card.prices.usd || 0;
-            const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365;
-            const randomChange = (Math.random() - 0.5) * 0.2; // ±10% max change
-            const timeAdjustedChange = randomChange * Math.sqrt(days / 30); // Longer periods = more variation
-            const priceChange = currentPrice * timeAdjustedChange;
-            const priceChangePercent = currentPrice > 0 ? (priceChange / currentPrice) * 100 : 0;
-            
-            const trend: 'up' | 'down' | 'stable' = 
-              Math.abs(priceChangePercent) < 2 ? 'stable' :
-              priceChangePercent > 0 ? 'up' : 'down';
-
+            // No price simulation - only current price data
             return {
               card,
-              priceChange,
-              priceChangePercent,
-              trend,
+              priceChange: 0,
+              priceChangePercent: 0,
+              trend: 'stable' as 'up' | 'down' | 'stable',
+              volatility: 0,
+              confidence: 0,
             };
           } catch (err) {
             console.error(`Error loading card ${cardId}:`, err);

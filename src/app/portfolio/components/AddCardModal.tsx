@@ -1,6 +1,15 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+
+// Simple debounce utility function
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout | null = null;
+  return ((...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  }) as T;
+}
 import { X, Search, Plus } from 'lucide-react';
 import { MTGCard, PortfolioCard } from '@/lib/types';
 import { searchCards } from '@/lib/api/scryfall';
@@ -37,6 +46,31 @@ export function AddCardModal({ isOpen, onClose, onAddCard }: AddCardModalProps) 
   const [condition, setCondition] = useState<PortfolioCard['condition']>('near_mint');
   const [foil, setFoil] = useState(false);
   const [notes, setNotes] = useState('');
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    debounce(async (query: string) => {
+      if (!query.trim()) {
+        setSearchResults([]);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const result = await searchCards(query, { page: 1 });
+        setSearchResults(result.cards.slice(0, 20)); // Limit to 20 results
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to search cards';
+        setError(errorMessage);
+        setSearchResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 500), // 500ms debounce delay
+    []
+  );
 
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) {
@@ -151,7 +185,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard }: AddCardModalProps) 
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
-                      handleSearch(e.target.value);
+                      debouncedSearch(e.target.value);
                     }}
                     className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   />

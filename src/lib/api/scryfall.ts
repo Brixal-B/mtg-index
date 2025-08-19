@@ -1,9 +1,11 @@
 import { MTGCard } from '@/lib/types';
 
 const SCRYFALL_API_BASE = 'https://api.scryfall.com';
+const API_PROXY_BASE = '/api/cards'; // Our Next.js API routes
 
 // Rate limiting: Scryfall requests that applications sleep 50-100ms between requests
-const RATE_LIMIT_DELAY = 100;
+// Using 200ms to be more conservative and avoid 429 errors
+const RATE_LIMIT_DELAY = 200;
 let lastRequestTime = 0;
 
 async function rateLimitedFetch(url: string): Promise<Response> {
@@ -110,17 +112,29 @@ export async function searchCards(query: string, options: SearchOptions = {}): P
   const { page = 1, limit = 20, order = 'name', dir = 'asc' } = options;
   
   try {
+    // Validate and clean the query
+    const cleanQuery = query?.trim() || '';
+    
+    // If no query provided, use a default search that returns popular cards
+    const searchQuery = cleanQuery || '*';
+    
     // Build search query
     const searchParams = new URLSearchParams({
-      q: query,
+      q: searchQuery,
       page: page.toString(),
       format: 'json',
       order: order,
       dir: dir,
     });
 
-    const url = `${SCRYFALL_API_BASE}/cards/search?${searchParams}`;
+    const url = `${API_PROXY_BASE}/search?${searchParams}`;
     const response = await rateLimitedFetch(url);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Scryfall API error: ${response.status} - ${errorData.details || response.statusText}`);
+    }
+    
     const data = await response.json();
 
     const cards = data.data?.map(transformScryfallCard) || [];
@@ -135,16 +149,7 @@ export async function searchCards(query: string, options: SearchOptions = {}): P
     };
   } catch (error) {
     console.error('Error searching cards:', error);
-    
-    // Return empty result on error
-    return {
-      data: [],
-      cards: [],
-      totalCount: 0,
-      totalCards: 0,
-      hasMore: false,
-      page: 1,
-    };
+    throw error;
   }
 }
 
@@ -206,15 +211,22 @@ export async function advancedSearch(
     searchQuery += ` format:${format}`;
   }
   
-  return searchCards(searchQuery.trim(), options);
+  const finalQuery = searchQuery.trim();
+  // If no query and no filters, use default search
+  const queryToUse = finalQuery || '*';
+  return searchCards(queryToUse, options);
 }
 
 export async function getCard(cardId: string): Promise<MTGCard> {
   try {
-    const url = `${SCRYFALL_API_BASE}/cards/${cardId}`;
+    const url = `${API_PROXY_BASE}/${cardId}`;
     const response = await rateLimitedFetch(url);
-    const data = await response.json();
     
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
     return transformScryfallCard(data);
   } catch (error) {
     console.error('Error fetching card:', error);
@@ -230,11 +242,26 @@ interface PriceHistoryPoint {
 
 export async function getPriceHistory(cardId: string, days: number = 30): Promise<PriceHistoryPoint[]> {
   try {
-    // Note: Scryfall doesn't provide historical pricing data directly
-    // This is a mock implementation that generates sample data
-    // In a real application, you would need a different API or database for historical prices
+    // First try to get real historical data from MTGJSON
+    const { getPriceHistoryForCard } = await import('./mtgjson');
     
     const card = await getCard(cardId);
+    const mtgjsonHistory = await getPriceHistoryForCard(card);
+    
+    if (mtgjsonHistory && mtgjsonHistory.prices.length > 0) {
+      // Convert MTGJSON data to our expected format
+      return mtgjsonHistory.prices
+        .slice(-days) // Get last N days
+        .map(price => ({
+          date: price.date,
+          price: price.price,
+          priceType: price.priceType as 'usd' | 'usdFoil' | 'eur' | 'eurFoil' | 'tix',
+        }));
+    }
+    
+    // Fallback to mock data if MTGJSON data is not available
+    console.log(`Using mock price history for ${card.name} - MTGJSON data not available`);
+    
     const currentPrice = card.prices.usd || 0;
     
     // Generate mock historical data
@@ -298,7 +325,7 @@ export async function getCardsBySet(setCode: string, options: SearchOptions = {}
 // Get autocomplete suggestions for card names
 export async function getCardSuggestions(partialName: string): Promise<string[]> {
   try {
-    const url = `${SCRYFALL_API_BASE}/cards/autocomplete?q=${encodeURIComponent(partialName)}`;
+    const url = `${API_PROXY_BASE}/autocomplete?q=${encodeURIComponent(partialName)}`;
     const response = await rateLimitedFetch(url);
     const data = await response.json();
     

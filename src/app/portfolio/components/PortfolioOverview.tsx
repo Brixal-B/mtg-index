@@ -6,6 +6,7 @@ import { Portfolio, PortfolioCard } from '@/lib/types';
 import { savePortfolio } from '@/lib/utils/localStorage';
 import { AddCardModal } from './AddCardModal';
 import { PortfolioCardItem } from './PortfolioCardItem';
+import { TransactionHistory } from './TransactionHistory';
 import { CsvUploadModal } from './CsvUploadModal';
 
 interface PortfolioOverviewProps {
@@ -15,10 +16,10 @@ interface PortfolioOverviewProps {
 
 export function PortfolioOverview({ portfolio, onPortfolioUpdated }: PortfolioOverviewProps) {
   const [showAddCardModal, setShowAddCardModal] = useState(false);
-  const [showCsvUploadModal, setShowCsvUploadModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'value' | 'performance' | 'quantity'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [showCsvUploadModal, setShowCsvUploadModal] = useState(false);
 
   const handleAddCard = (card: PortfolioCard) => {
     const existingCardIndex = portfolio.cards.findIndex(
@@ -371,6 +372,12 @@ export function PortfolioOverview({ portfolio, onPortfolioUpdated }: PortfolioOv
           </div>
         </div>
       )}
+
+      {/* Transaction History */}
+      <TransactionHistory 
+        portfolioId={portfolio.id}
+        className="mt-6"
+      />
 
       {/* Add Card Modal */}
       <AddCardModal

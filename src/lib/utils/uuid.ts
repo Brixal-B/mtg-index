@@ -8,6 +8,11 @@ export function generateUUID(): string {
     return crypto.randomUUID();
   }
   
+  // Try window.crypto.randomUUID for browser compatibility
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+  
   // Fallback implementation using Math.random()
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
@@ -16,3 +21,4 @@ export function generateUUID(): string {
   });
 }
 
+export default generateUUID;

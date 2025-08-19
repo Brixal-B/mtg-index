@@ -10,6 +10,14 @@ export const metadata: Metadata = {
   title: 'MTG Investment Tracker',
   description: 'Track your Magic: The Gathering card investments and portfolio performance',
   keywords: ['MTG', 'Magic The Gathering', 'investment', 'cards', 'portfolio', 'tracker'],
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16', type: 'image/x-icon' },
+      { url: '/favicon.svg', type: 'image/svg+xml' }
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
