@@ -1,218 +1,283 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, Info, RefreshCw } from 'lucide-react';
-import { MTGCard, PriceHistory } from '@/lib/types';
-import { getPriceHistoryForCard } from '@/lib/api/mtgjson';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  Legend,
+  ComposedChart,
+  Area,
+  AreaChart
+} from 'recharts';
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign,
+  Calendar,
+  Filter,
+  ChevronDown
+} from 'lucide-react';
+import { Portfolio, PortfolioCard, PriceHistory } from '@/lib/types';
+import { batchGetPriceHistories } from '@/lib/api/mtgjson';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 
 interface EnhancedPriceChartProps {
-  card: MTGCard;
-  timeframe?: '7d' | '30d' | '90d';
-  showFoilPrices?: boolean;
-  height?: number;
+  portfolios: Portfolio[];
+  timeframe: '7d' | '30d' | '90d' | '1y';
+  showIndividualCards?: boolean;
+  maxCardsToShow?: number;
 }
 
 interface ChartDataPoint {
   date: string;
-  normalPrice?: number;
-  foilPrice?: number;
-  dateFormatted: string;
+  formattedDate: string;
+  totalValue: number;
+  [cardId: string]: any; // Individual card values
 }
 
+interface CardPerformance {
+  card: PortfolioCard;
+  currentValue: number;
+  previousValue: number;
+  change: number;
+  changePercent: number;
+  priceHistory?: PriceHistory;
+}
+
+const COLORS = [
+  '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+  '#06B6D4', '#EC4899', '#84CC16', '#F97316', '#6366F1'
+];
+
 export function EnhancedPriceChart({ 
-  card, 
-  timeframe = '30d', 
-  showFoilPrices = false,
-  height = 300 
+  portfolios, 
+  timeframe,
+  showIndividualCards = false,
+  maxCardsToShow = 5
 }: EnhancedPriceChartProps) {
-  const [priceHistory, setPriceHistory] = useState<PriceHistory | null>(null);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<'mtgjson' | 'mock'>('mock');
+  const [priceHistories, setPriceHistories] = useState<Map<string, PriceHistory>>(new Map());
+  const [selectedCards, setSelectedCards] = useState<string[]>([]);
+  const [showCardSelector, setShowCardSelector] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    loadPriceHistory();
-  }, [card.id, timeframe]);
+    setIsClient(true);
+  }, []);
 
-  const loadPriceHistory = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const history = await getPriceHistoryForCard(card);
-      
-      if (history) {
-        setPriceHistory(history);
-        setDataSource(history.provider === 'mtgjson' ? 'mtgjson' : 'mock');
-      } else {
-        // Fallback to mock data
-        setPriceHistory(generateMockPriceHistory());
-        setDataSource('mock');
-      }
-    } catch (err) {
-      console.error('Error loading price history:', err);
-      setError('Failed to load price history');
-      // Generate mock data as fallback
-      setPriceHistory(generateMockPriceHistory());
-      setDataSource('mock');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateMockPriceHistory = (): PriceHistory => {
-    const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
-    const currentPrice = card.prices.usd || 1;
-    const prices = [];
-    const now = new Date();
-
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      
-      const variation = (Math.random() - 0.5) * 0.1;
-      const price = Math.max(0.01, currentPrice * (1 + variation));
-      
-      prices.push({
-        cardId: card.id,
-        date: date.toISOString().split('T')[0],
-        price: Math.round(price * 100) / 100,
-        priceType: 'usd' as const,
-      });
-
-      if (showFoilPrices && card.prices.usdFoil) {
-        const foilVariation = (Math.random() - 0.5) * 0.12;
-        const foilPrice = Math.max(0.01, card.prices.usdFoil * (1 + foilVariation));
-        
-        prices.push({
-          cardId: card.id,
-          date: date.toISOString().split('T')[0],
-          price: Math.round(foilPrice * 100) / 100,
-          priceType: 'usdFoil' as const,
-        });
-      }
-    }
-
-    return {
-      cardId: card.id,
-      prices,
-      trend: 'stable',
-      volatility: 0.1,
-      averagePrice: currentPrice,
-      provider: 'mock',
-    };
-  };
-
-  const chartData = useMemo(() => {
-    if (!priceHistory) return [];
-
-    const dataMap = new Map<string, ChartDataPoint>();
+  // Get all unique cards from portfolios
+  const allCards = useMemo(() => {
+    const cardMap = new Map<string, PortfolioCard>();
     
-    priceHistory.prices.forEach(price => {
-      const existing = dataMap.get(price.date) || {
-        date: price.date,
-        dateFormatted: new Date(price.date).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        }),
-      };
-
-      if (price.priceType === 'usd') {
-        existing.normalPrice = price.price;
-      } else if (price.priceType === 'usdFoil') {
-        existing.foilPrice = price.price;
-      }
-
-      dataMap.set(price.date, existing);
+    portfolios.forEach(portfolio => {
+      portfolio.cards.forEach(portfolioCard => {
+        const existing = cardMap.get(portfolioCard.cardId);
+        if (existing) {
+          existing.quantity += portfolioCard.quantity;
+        } else {
+          cardMap.set(portfolioCard.cardId, { ...portfolioCard });
+        }
+      });
     });
 
-    return Array.from(dataMap.values()).sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-  }, [priceHistory]);
+    return Array.from(cardMap.values()).sort((a, b) => {
+      const aValue = (a.card.prices.usd || 0) * a.quantity;
+      const bValue = (b.card.prices.usd || 0) * b.quantity;
+      return bValue - aValue; // Sort by total value descending
+    });
+  }, [portfolios]);
 
-  const priceStats = useMemo(() => {
-    if (!priceHistory || priceHistory.prices.length === 0) {
-      return {
-        currentPrice: card.prices.usd || 0,
-        change: 0,
-        changePercent: 0,
-        trend: 'stable' as const,
-      };
+  // Get top valuable cards for default selection
+  useEffect(() => {
+    if (allCards.length > 0 && selectedCards.length === 0) {
+      const topCards = allCards.slice(0, maxCardsToShow).map(card => card.cardId);
+      setSelectedCards(topCards);
     }
+  }, [allCards, maxCardsToShow, selectedCards.length]);
 
-    const normalPrices = priceHistory.prices
-      .filter(p => p.priceType === 'usd')
-      .map(p => p.price);
+  useEffect(() => {
+    let isCancelled = false;
 
-    if (normalPrices.length < 2) {
-      return {
-        currentPrice: normalPrices[0] || 0,
-        change: 0,
-        changePercent: 0,
-        trend: 'stable' as const,
-      };
-    }
+    const loadPriceData = async () => {
+      if (!isClient || allCards.length === 0) return;
 
-    const currentPrice = normalPrices[normalPrices.length - 1];
-    const previousPrice = normalPrices[normalPrices.length - 2];
-    const change = currentPrice - previousPrice;
-    const changePercent = previousPrice > 0 ? (change / previousPrice) * 100 : 0;
+      setLoading(true);
+
+      try {
+        // Get price histories for all cards
+        const cards = allCards.map(pc => pc.card);
+        const histories = await batchGetPriceHistories(cards);
+        
+        if (!isCancelled) {
+          setPriceHistories(histories);
+          
+          // Generate chart data
+          const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365;
+          const chartPoints: ChartDataPoint[] = [];
+          
+          for (let i = days; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            
+            const dataPoint: ChartDataPoint = {
+              date: dateStr,
+              formattedDate: date.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+              }),
+              totalValue: 0
+            };
+            
+            // Calculate portfolio value for this date
+            portfolios.forEach(portfolio => {
+              portfolio.cards.forEach(portfolioCard => {
+                const history = histories.get(portfolioCard.cardId);
+                let priceForDate = portfolioCard.card.prices.usd || 0;
+                
+                if (history) {
+                  // Find price for this specific date or closest previous date
+                  const pricePoints = history.prices
+                    .filter(p => p.priceType === 'usd' && p.date <= dateStr)
+                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                  
+                  if (pricePoints.length > 0) {
+                    priceForDate = pricePoints[0].price;
+                  }
+                } else {
+                  // Generate mock historical price based on current price and some volatility
+                  const volatility = 0.1; // 10% daily volatility
+                  const randomFactor = (Math.random() - 0.5) * volatility;
+                  const trendFactor = Math.sin(i / days * Math.PI) * 0.05; // Slight trend
+                  priceForDate = (portfolioCard.card.prices.usd || 0) * (1 + randomFactor + trendFactor);
+                }
+                
+                const cardValue = priceForDate * portfolioCard.quantity;
+                dataPoint.totalValue += cardValue;
+                
+                // Add individual card data if showing individual cards
+                if (showIndividualCards && selectedCards.includes(portfolioCard.cardId)) {
+                  dataPoint[portfolioCard.cardId] = cardValue;
+                }
+              });
+            });
+            
+            chartPoints.push(dataPoint);
+          }
+          
+          setChartData(chartPoints);
+        }
+      } catch (error) {
+        console.error('Error loading price data:', error);
+        if (!isCancelled) {
+          // Generate fallback mock data
+          generateMockChartData();
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    const generateMockChartData = () => {
+      const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365;
+      const currentTotalValue = portfolios.reduce((sum, p) => sum + p.totalValue, 0);
+      const chartPoints: ChartDataPoint[] = [];
+      
+      for (let i = days; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        
+        // Generate realistic portfolio value variation
+        const volatility = 0.08; // 8% daily volatility for portfolio
+        const randomFactor = (Math.random() - 0.5) * volatility;
+        const trendFactor = Math.sin(i / days * Math.PI) * 0.03; // Slight upward trend
+        const dayValue = currentTotalValue * (1 + randomFactor + trendFactor);
+        
+        const dataPoint: ChartDataPoint = {
+          date: dateStr,
+          formattedDate: date.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+          }),
+          totalValue: Math.max(0, dayValue)
+        };
+        
+        // Add individual card mock data
+        if (showIndividualCards) {
+          selectedCards.forEach((cardId, index) => {
+            const card = allCards.find(c => c.cardId === cardId);
+            if (card) {
+              const cardCurrentValue = (card.card.prices.usd || 0) * card.quantity;
+              const cardDayValue = cardCurrentValue * (1 + randomFactor * 1.2 + trendFactor);
+              dataPoint[cardId] = Math.max(0, cardDayValue);
+            }
+          });
+        }
+        
+        chartPoints.push(dataPoint);
+      }
+      
+      setChartData(chartPoints);
+    };
+
+    loadPriceData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [portfolios, timeframe, allCards, showIndividualCards, selectedCards, isClient]);
+
+  // Calculate performance metrics
+  const performanceMetrics = useMemo(() => {
+    if (chartData.length === 0) return null;
+
+    const currentValue = chartData[chartData.length - 1]?.totalValue || 0;
+    const previousValue = chartData[0]?.totalValue || 0;
+    const change = currentValue - previousValue;
+    const changePercent = previousValue > 0 ? (change / previousValue) * 100 : 0;
+
+    // Calculate 24h change if we have enough data
+    const change24h = chartData.length > 1 ? 
+      chartData[chartData.length - 1].totalValue - chartData[chartData.length - 2].totalValue : 0;
+    const change24hPercent = chartData.length > 1 && chartData[chartData.length - 2].totalValue > 0 ?
+      (change24h / chartData[chartData.length - 2].totalValue) * 100 : 0;
 
     return {
-      currentPrice,
+      currentValue,
       change,
       changePercent,
-      trend: priceHistory.trend,
+      change24h,
+      change24hPercent,
+      trend: changePercent > 1 ? 'up' : changePercent < -1 ? 'down' : 'stable'
     };
-  }, [priceHistory, card.prices.usd]);
+  }, [chartData]);
 
-  const formatPrice = (price: number) => `$${price.toFixed(2)}`;
-  const formatChange = (change: number) => 
-    `${change >= 0 ? '+' : ''}${change.toFixed(2)}`;
-  const formatChangePercent = (percent: number) => 
-    `${percent >= 0 ? '+' : ''}${percent.toFixed(1)}%`;
+  const formatCurrency = (value: number) => `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatPercent = (value: number) => `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
 
-  const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
-    switch (trend) {
-      case 'up': return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'down': return <TrendingDown className="h-4 w-4 text-red-500" />;
-      default: return <Minus className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
-  const getTrendColor = (trend: 'up' | 'down' | 'stable') => {
-    switch (trend) {
-      case 'up': return 'text-green-500';
-      case 'down': return 'text-red-500';
-      default: return 'text-gray-500';
-    }
+  const handleCardToggle = (cardId: string) => {
+    setSelectedCards(prev => 
+      prev.includes(cardId) 
+        ? prev.filter(id => id !== cardId)
+        : [...prev, cardId].slice(0, maxCardsToShow)
+    );
   };
 
   if (loading) {
     return (
       <div className="bg-card border border-border rounded-lg p-6">
-        <div className="flex items-center justify-center h-64">
+        <div className="flex items-center justify-center h-80">
           <LoadingSpinner />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-card border border-border rounded-lg p-6">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">{error}</p>
-          <button
-            onClick={loadPriceHistory}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Retry</span>
-          </button>
+          <span className="ml-2 text-muted-foreground">Loading portfolio price history...</span>
         </div>
       </div>
     );
@@ -220,118 +285,181 @@ export function EnhancedPriceChart({
 
   return (
     <div className="bg-card border border-border rounded-lg p-6">
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">Price History</h3>
-            <p className="text-sm text-muted-foreground">{card.name}</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            {dataSource === 'mock' && (
-              <div className="flex items-center space-x-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                <Info className="h-3 w-3" />
-                <span>Demo Data</span>
-              </div>
-            )}
-            {dataSource === 'mtgjson' && (
-              <div className="flex items-center space-x-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                <Info className="h-3 w-3" />
-                <span>MTGJSON Data</span>
-              </div>
-            )}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Portfolio Value Over Time</h3>
+          <p className="text-sm text-muted-foreground">
+            {timeframe.toUpperCase()} • Total of {portfolios.length} portfolio{portfolios.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          {performanceMetrics && (
+            <div className="text-right">
+              <p className="text-lg font-semibold text-foreground">
+                {formatCurrency(performanceMetrics.currentValue)}
+              </p>
+              <p className={`text-sm ${
+                performanceMetrics.changePercent >= 0 ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {formatCurrency(performanceMetrics.change)} ({formatPercent(performanceMetrics.changePercent)})
+              </p>
+            </div>
+          )}
+          
+          {showIndividualCards && (
+            <button
+              onClick={() => setShowCardSelector(!showCardSelector)}
+              className="flex items-center space-x-1 px-3 py-2 border border-border rounded-lg hover:bg-accent transition-colors"
+            >
+              <Filter className="h-4 w-4" />
+              <span className="text-sm">Cards</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${showCardSelector ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Card Selector */}
+      {showIndividualCards && showCardSelector && (
+        <div className="mb-6 p-4 border border-border rounded-lg bg-accent">
+          <h4 className="text-sm font-medium text-foreground mb-3">
+            Select cards to display (max {maxCardsToShow}):
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+            {allCards.slice(0, 20).map((portfolioCard) => (
+              <button
+                key={portfolioCard.cardId}
+                onClick={() => handleCardToggle(portfolioCard.cardId)}
+                disabled={!selectedCards.includes(portfolioCard.cardId) && selectedCards.length >= maxCardsToShow}
+                className={`flex items-center justify-between p-2 rounded text-sm transition-colors ${
+                  selectedCards.includes(portfolioCard.cardId)
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-background hover:bg-accent border border-border'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <span className="truncate">{portfolioCard.card.name}</span>
+                <span className="ml-2 text-xs">
+                  {formatCurrency((portfolioCard.card.prices.usd || 0) * portfolioCard.quantity)}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
+      )}
 
-        {/* Price Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Performance Summary */}
+      {performanceMetrics && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">Current Price</p>
-            <p className="text-xl font-bold text-foreground">
-              {formatPrice(priceStats.currentPrice)}
+            <p className="text-xs text-muted-foreground">Current Value</p>
+            <p className="font-semibold text-foreground">
+              {formatCurrency(performanceMetrics.currentValue)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">Change</p>
-            <p className={`text-xl font-bold ${getTrendColor(priceStats.trend)}`}>
-              {formatChange(priceStats.change)}
+            <p className="text-xs text-muted-foreground">24h Change</p>
+            <p className={`font-semibold ${
+              performanceMetrics.change24hPercent >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {formatPercent(performanceMetrics.change24hPercent)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">Change %</p>
-            <p className={`text-xl font-bold ${getTrendColor(priceStats.trend)}`}>
-              {formatChangePercent(priceStats.changePercent)}
+            <p className="text-xs text-muted-foreground">{timeframe.toUpperCase()} Change</p>
+            <p className={`font-semibold ${
+              performanceMetrics.changePercent >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {formatPercent(performanceMetrics.changePercent)}
             </p>
           </div>
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">Trend</p>
+            <p className="text-xs text-muted-foreground">Trend</p>
             <div className="flex items-center justify-center">
-              {getTrendIcon(priceStats.trend)}
+              {performanceMetrics.trend === 'up' ? (
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              ) : performanceMetrics.trend === 'down' ? (
+                <TrendingDown className="h-4 w-4 text-red-500" />
+              ) : (
+                <DollarSign className="h-4 w-4 text-gray-500" />
+              )}
             </div>
           </div>
         </div>
+      )}
 
-        {/* Chart */}
-        <div style={{ height }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis 
-                dataKey="dateFormatted" 
-                className="text-xs"
-                tick={{ fontSize: 12 }}
-              />
-              <YAxis 
-                className="text-xs"
-                tick={{ fontSize: 12 }}
-                tickFormatter={formatPrice}
-              />
-              <Tooltip
-                content={({ active, payload, label }) => {
-                  if (!active || !payload || payload.length === 0) return null;
-
-                  return (
-                    <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-                      <p className="text-sm font-medium text-foreground mb-2">{label}</p>
-                      {payload.map((entry, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <div 
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: entry.color }}
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            {entry.name}: {formatPrice(entry.value as number)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                }}
-              />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="normalPrice"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={false}
-                name="Normal"
-                connectNulls={false}
-              />
-              {showFoilPrices && (
+      {/* Chart */}
+      <div className="h-80">
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.3} />
+            <XAxis 
+              dataKey="formattedDate" 
+              stroke="#6B7280"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis 
+              stroke="#6B7280"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+            />
+            <Tooltip 
+              contentStyle={{
+                backgroundColor: '#1F2937',
+                border: '1px solid #374151',
+                borderRadius: '6px',
+                color: '#F9FAFB'
+              }}
+              formatter={(value: number, name: string) => {
+                const cardName = name === 'totalValue' ? 'Total Portfolio' : 
+                  allCards.find(c => c.cardId === name)?.card.name || name;
+                return [formatCurrency(value), cardName];
+              }}
+              labelFormatter={(label) => `Date: ${label}`}
+            />
+            <Legend />
+            
+            {/* Total portfolio value area */}
+            <Area
+              type="monotone"
+              dataKey="totalValue"
+              fill="#3B82F6"
+              fillOpacity={0.1}
+              stroke="#3B82F6"
+              strokeWidth={2}
+              name="Total Portfolio"
+            />
+            
+            {/* Individual card lines */}
+            {showIndividualCards && selectedCards.map((cardId, index) => {
+              const card = allCards.find(c => c.cardId === cardId);
+              if (!card) return null;
+              
+              return (
                 <Line
+                  key={cardId}
                   type="monotone"
-                  dataKey="foilPrice"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
+                  dataKey={cardId}
+                  stroke={COLORS[index % COLORS.length]}
+                  strokeWidth={1.5}
                   dot={false}
-                  name="Foil"
-                  connectNulls={false}
+                  name={card.card.name}
+                  strokeDasharray={index % 2 === 1 ? "5 5" : undefined}
                 />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+              );
+            })}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-4 text-xs text-muted-foreground text-center">
+        Price data combines current Scryfall prices with {priceHistories.size > 0 ? 'MTGJSON historical data' : 'simulated historical trends'}
       </div>
     </div>
   );

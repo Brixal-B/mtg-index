@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { HardDrive, AlertTriangle, Database, Trash2 } from 'lucide-react';
-import { getStorageUsage, clearAllData } from '@/lib/utils/localStorage';
+import { getStorageUsage, clearAllData } from '@/lib/storage';
 
 interface StorageBreakdown {
   portfolios: number;
@@ -49,16 +49,20 @@ export function StorageMonitor() {
           
           const totalKnown = breakdown.portfolios + breakdown.watchlist + 
                            breakdown.preferences + breakdown.priceAlerts;
-          breakdown.other = Math.max(0, usage.used - totalKnown);
+          breakdown.other = Math.max(0, (usage?.used || 0) - totalKnown);
         }
       } catch (error) {
         console.error('Error calculating storage breakdown:', error);
       }
 
-      setStorageData({
-        ...usage,
-        breakdown,
-      });
+      if (usage) {
+        setStorageData({
+          used: usage.used,
+          total: usage.total,
+          percentage: usage.percentage,
+          breakdown,
+        });
+      }
     };
 
     updateStorageData();

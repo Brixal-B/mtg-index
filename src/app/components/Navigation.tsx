@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Search, TrendingUp, Wallet, Settings, BarChart3 } from 'lucide-react';
+import { Search, TrendingUp, Wallet, Settings, BarChart3, Star } from 'lucide-react';
 
 const navigationItems = [
   {
@@ -16,6 +16,12 @@ const navigationItems = [
     href: '/portfolio',
     icon: Wallet,
     description: 'Manage your card collection'
+  },
+  {
+    name: 'Wishlist',
+    href: '/wishlist',
+    icon: Star,
+    description: 'Track cards you want and price alerts'
   },
   {
     name: 'Analytics',
@@ -91,6 +97,7 @@ export function Navigation() {
               const mobileAriaLabels: { [key: string]: string } = {
                 'Browse Cards': 'Card Search',
                 'Portfolio': 'My Collection',
+                'Wishlist': 'My Wishlist',
                 'Analytics': 'Data Analysis',
                 'Admin': 'Administration'
               };

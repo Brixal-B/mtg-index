@@ -1,5 +1,5 @@
 import { MTGCard, MTGJSONCard } from '@/lib/types';
-import { mtgjsonCache } from '@/lib/utils/mtgjsonCache';
+import { storageManager } from '@/lib/storage';
 
 // MTGJSON AllPrintings data structure
 interface MTGJSONSet {
@@ -420,8 +420,8 @@ class CardMappingService {
    */
   private async cacheAllPrintings(data: MTGJSONAllPrintings): Promise<void> {
     try {
-      // Store in IndexedDB via mtgjsonCache
-      await mtgjsonCache.setMetadata({
+      // Store in IndexedDB via storageManager
+      await storageManager.setMetadata({
         lastPriceUpdate: data.meta.date,
         totalCards: this.countTotalCards(data),
         cacheVersion: data.meta.version,

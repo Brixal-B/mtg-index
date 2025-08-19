@@ -16,7 +16,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import { SystemMetrics } from '@/lib/types';
-import { getPortfolios, getStorageUsage } from '@/lib/utils/localStorage';
+import { getPortfolios, getStorageUsage } from '@/lib/storage';
 import { SystemHealthChart } from './components/SystemHealthChart';
 import { PerformanceMetrics } from './components/PerformanceMetrics';
 import { ApiStatusGrid } from './components/ApiStatusGrid';
@@ -49,10 +49,10 @@ export default function AdminPage() {
         const totalCards = portfolios.reduce((sum, p) => sum + p.cards.length, 0);
         const uniqueCards = new Set(portfolios.flatMap(p => p.cards.map(c => c.cardId))).size;
         
-        // Mock system health based on storage usage and data
-        const systemHealth: SystemMetrics['systemHealth'] = 
-          storageUsage.percentage > 80 ? 'critical' :
-          storageUsage.percentage > 60 ? 'warning' : 'healthy';
+                // Mock system health based on storage usage and data
+        const systemHealth: SystemMetrics['systemHealth'] =
+          storageUsage && storageUsage.percentage > 80 ? 'critical' :
+          storageUsage && storageUsage.percentage > 60 ? 'warning' : 'healthy';
 
         // API status based on actual connectivity
         const apiStatuses = 'online'; // Assume online unless specific error detected

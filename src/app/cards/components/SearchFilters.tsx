@@ -27,6 +27,18 @@ const rarityOptions = [
   { value: 'mythic', label: 'Mythic' },
 ];
 
+const formatOptions = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'pioneer', label: 'Pioneer' },
+  { value: 'modern', label: 'Modern' },
+  { value: 'legacy', label: 'Legacy' },
+  { value: 'vintage', label: 'Vintage' },
+  { value: 'commander', label: 'Commander/EDH' },
+  { value: 'pauper', label: 'Pauper' },
+  { value: 'historic', label: 'Historic' },
+  { value: 'explorer', label: 'Explorer' },
+];
+
 const sortOptions = [
   { value: 'name', label: 'Name' },
   { value: 'usd', label: 'Price (USD)' },
@@ -84,6 +96,7 @@ export function SearchFilters({
     filters.rarity?.length ||
     filters.sets?.length ||
     filters.types?.length ||
+    filters.formats?.length ||
     filters.minPrice ||
     filters.maxPrice ||
     filters.minCmc ||
@@ -217,6 +230,28 @@ export function SearchFilters({
                   }`}
                 >
                   {rarity.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Formats */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Legal Formats
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {formatOptions.map(format => (
+                <button
+                  key={format.value}
+                  onClick={() => handleArrayFilterChange('formats', format.value)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    filters.formats?.includes(format.value)
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      : 'bg-accent text-accent-foreground hover:bg-accent/80'
+                  }`}
+                >
+                  {format.label}
                 </button>
               ))}
             </div>

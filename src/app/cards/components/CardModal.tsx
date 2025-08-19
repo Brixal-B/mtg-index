@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { X, Star, Plus, DollarSign, TrendingUp, Calendar, Palette, Zap } from 'lucide-react';
 import { MTGCard } from '@/lib/types';
-import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '@/lib/utils/localStorage';
+import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '@/lib/storage';
 import { getPriceHistory } from '@/lib/api/scryfall';
 import { EnhancedPriceChart } from '@/app/analytics/components/EnhancedPriceChart';
 

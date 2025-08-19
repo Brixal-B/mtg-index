@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Star, TrendingUp, TrendingDown, Eye, AlertCircle } from 'lucide-react';
 import { MTGCard } from '@/lib/types';
-import { getWatchlist, removeFromWatchlist } from '@/lib/utils/localStorage';
+import { getWatchlist, removeFromWatchlist } from '@/lib/storage';
 import { getCard } from '@/lib/api/scryfall';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 

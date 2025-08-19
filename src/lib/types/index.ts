@@ -200,6 +200,7 @@ export interface CardFilters {
   rarity?: string[];
   sets?: string[];
   types?: string[];
+  formats?: string[]; // Added format filtering
   minPrice?: number;
   maxPrice?: number;
   minCmc?: number;

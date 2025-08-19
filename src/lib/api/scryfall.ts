@@ -138,11 +138,11 @@ interface AdvancedSearchFilters {
   types?: string[];
   sets?: string[];
   rarity?: string[];
+  formats?: string[]; // Changed from format to formats array
   minCmc?: number;
   maxCmc?: number;
   minPrice?: number;
   maxPrice?: number;
-  format?: string;
 }
 
 export async function advancedSearch(
@@ -150,7 +150,7 @@ export async function advancedSearch(
   filters: AdvancedSearchFilters = {},
   options: SearchOptions = {}
 ): Promise<SearchResult> {
-  const { colors, types, sets, rarity, minCmc, maxCmc, minPrice, maxPrice, format } = filters;
+  const { colors, types, sets, rarity, formats, minCmc, maxCmc, minPrice, maxPrice } = filters;
   
   // Build advanced search query
   let searchQuery = query;
@@ -187,8 +187,10 @@ export async function advancedSearch(
     searchQuery += ` usd<=${maxPrice}`;
   }
   
-  if (format) {
-    searchQuery += ` format:${format}`;
+  if (formats && formats.length > 0) {
+    // For multiple formats, we need to use OR logic
+    const formatQuery = formats.map(f => `format:${f}`).join(' OR ');
+    searchQuery += ` (${formatQuery})`;
   }
   
   const finalQuery = searchQuery.trim();

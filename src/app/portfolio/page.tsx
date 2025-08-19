@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 import { Portfolio } from '@/lib/types';
-import { getPortfolios } from '@/lib/utils/localStorage';
+import { getPortfolios } from '@/lib/storage';
 import { PortfolioList } from './components/PortfolioList';
 import { PortfolioOverview } from './components/PortfolioOverview';
 import { CreatePortfolioModal } from './components/CreatePortfolioModal';
