@@ -3,7 +3,7 @@
  * Handles the large (~200MB) dataset efficiently using IndexedDB with compression
  */
 
-import { mtgjsonCache } from './mtgjsonCache';
+import { storageManager } from '@/lib/storage';
 
 interface CompressedChunk {
   id: string;

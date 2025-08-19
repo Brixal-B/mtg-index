@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { MTGCard } from '@/lib/types';
 import { Star, Plus, Eye, DollarSign } from 'lucide-react';
-import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '@/lib/utils/localStorage';
+import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '@/lib/storage';
 import { usePriceTrends } from '@/lib/hooks/usePriceTrends';
 import { CompactPriceTrend } from '@/app/components/PriceTrendIndicator';
 

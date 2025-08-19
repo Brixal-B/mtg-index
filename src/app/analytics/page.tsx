@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, PieChart, BarChart3, Target, AlertTriangle, Star } from 'lucide-react';
 import { Portfolio, InvestmentAnalytics } from '@/lib/types';
-import { getPortfolios, getWatchlist } from '@/lib/utils/localStorage';
+import { getPortfolios, getWatchlist } from '@/lib/storage';
 import { getCard } from '@/lib/api/scryfall';
 import { PortfolioOverviewChart } from './components/PortfolioOverviewChart';
 import { PerformanceChart } from './components/PerformanceChart';
@@ -259,12 +259,10 @@ export default function AnalyticsPage() {
           timeframe={selectedTimeframe}
         />
 
-        {/* Enhanced Price Chart */}
-        <EnhancedPriceChart 
+        {/* Performance Chart */}
+        <PerformanceChart 
           portfolios={portfolios}
           timeframe={selectedTimeframe}
-          showIndividualCards={true}
-          maxCardsToShow={5}
         />
 
         {/* Diversification Chart */}

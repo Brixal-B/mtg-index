@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getPreferences, savePreferences } from '@/lib/utils/localStorage';
+import { getPreferences, savePreferences } from '@/lib/storage';
 
 type Theme = 'light' | 'dark' | 'system';
 

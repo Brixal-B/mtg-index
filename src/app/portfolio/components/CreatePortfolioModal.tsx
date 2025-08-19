@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X, Wallet } from 'lucide-react';
 import { Portfolio } from '@/lib/types';
-import { savePortfolio } from '@/lib/utils/localStorage';
+import { savePortfolio } from '@/lib/storage';
 // import { generateUUID } from '@/lib/utils/uuid';
 
 interface CreatePortfolioModalProps {

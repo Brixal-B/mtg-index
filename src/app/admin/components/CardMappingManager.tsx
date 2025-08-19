@@ -17,7 +17,7 @@ import { allPrintingsStorage, type SetCardData } from '@/lib/utils/allPrintingsS
 import { mtgjsonInitService } from '@/lib/services/mtgjsonInitService';
 import { runMTGJSONTests, testCardMappingForCard, quickHealthCheck } from '@/lib/utils/mtgjsonTestUtils';
 import { runAllUnicodeTests } from '@/lib/utils/unicodeTestUtils';
-import { cleanupLocalStorage, getLocalStorageUsage, emergencyCleanup, formatBytes, isQuotaExceeded } from '@/lib/utils/storageCleanup';
+import { cleanupLocalStorage, getLocalStorageUsage, emergencyCleanup, formatBytes, isQuotaExceeded } from '@/lib/storage';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 
 export function CardMappingManager() {

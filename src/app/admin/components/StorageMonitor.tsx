@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { HardDrive, AlertTriangle, Database, Trash2 } from 'lucide-react';
-import { getStorageUsage, clearAllData } from '@/lib/utils/localStorage';
+import { getStorageUsage, clearAllData } from '@/lib/storage';
 
 interface StorageBreakdown {
   portfolios: number;

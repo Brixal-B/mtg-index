@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Plus, Search, TrendingUp, TrendingDown, Edit3, DollarSign, Upload } from 'lucide-react';
 import { Portfolio, PortfolioCard } from '@/lib/types';
-import { savePortfolio } from '@/lib/utils/localStorage';
+import { savePortfolio } from '@/lib/storage';
 import { AddCardModal } from './AddCardModal';
 import { PortfolioCardItem } from './PortfolioCardItem';
 import { TransactionHistory } from './TransactionHistory';

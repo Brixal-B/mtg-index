@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { X, Upload, FileText, AlertTriangle, CheckCircle, Download } from 'lucide-react';
 import { MTGCard, PortfolioCard } from '@/lib/types';
 import { batchLookupCards } from '@/lib/api/scryfall';
+import { parseEnhancedCsv, generateSampleCsv } from '@/lib/utils/csvFormatDetector';
 
 interface CsvUploadModalProps {
   isOpen: boolean;
@@ -42,6 +43,7 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState<ImportResult[]>([]);
   const [progress, setProgress] = useState(0);
+  const [detectedFormat, setDetectedFormat] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -185,14 +187,24 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
 
     try {
       const csvContent = await file.text();
-      const entries = parseCardSphereCSV(csvContent);
+      const parseResult = parseEnhancedCsv(csvContent);
       
-      if (entries.length === 0) {
+      if (parseResult.entries.length === 0) {
         throw new Error('No valid card entries found in CSV file');
       }
 
+      // Show format detection results
+      setDetectedFormat(`${parseResult.format.format} (${Math.round(parseResult.format.confidence * 100)}% confidence)`);
+      console.log(`Detected format: ${parseResult.format.format} (${Math.round(parseResult.format.confidence * 100)}% confidence)`);
+      if (parseResult.warnings.length > 0) {
+        console.warn('Import warnings:', parseResult.warnings);
+      }
+      if (parseResult.errors.length > 0) {
+        console.error('Import errors:', parseResult.errors);
+      }
+
       // Initialize results
-      const initialResults: ImportResult[] = entries.map(entry => ({
+      const initialResults: ImportResult[] = parseResult.entries.map(entry => ({
         ...entry,
         card: null,
         status: 'pending' as const
@@ -200,7 +212,7 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
       setResults(initialResults);
 
       // Batch lookup cards from Scryfall
-      const lookupEntries = entries.map(entry => ({
+      const lookupEntries = parseResult.entries.map(entry => ({
         name: entry.name,
         set: entry.set,
         scryfallId: entry.scryfallId  // Include Scryfall ID for direct lookup
@@ -209,7 +221,7 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
       const lookupResults = await batchLookupCards(lookupEntries);
       
       // Update results with lookup data
-      const finalResults: ImportResult[] = entries.map((entry, index) => {
+      const finalResults: ImportResult[] = parseResult.entries.map((entry, index) => {
         const lookupResult = lookupResults[index];
         return {
           ...entry,
@@ -268,17 +280,14 @@ export function CsvUploadModal({ isOpen, onClose, onCardsImported }: CsvUploadMo
     onClose();
   };
 
-  const downloadSampleCSV = () => {
-    const sampleCSV = `name,set,quantity,condition,foil,scryfall_id,purchase_price,purchase_date,notes
-Lightning Bolt,lea,4,near_mint,false,24c3d451-6e59-470c-a6b8-f2fb7a00b0c3,25.00,2024-01-15,Alpha version
-Black Lotus,lea,1,excellent,false,bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd,15000.00,2024-01-10,Power Nine
-Tarmogoyf,fut,2,mint,true,69daba76-96e8-4bcc-ab79-2da3829d4df0,120.00,2024-01-20,Future Sight foil`;
+  const downloadSampleCSV = (format: 'cardsphere' | 'moxfield' | 'archidekt' | 'mtga' = 'cardsphere') => {
+    const sampleCSV = generateSampleCsv(format);
 
     const blob = new Blob([sampleCSV], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'cardsphere_sample.csv';
+    a.download = `${format}_sample.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -293,7 +302,7 @@ Tarmogoyf,fut,2,mint,true,69daba76-96e8-4bcc-ab79-2da3829d4df0,120.00,2024-01-20
         <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center space-x-2">
             <FileText className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-semibold text-foreground">Import CardSphere CSV</h2>
+            <h2 className="text-xl font-semibold text-foreground">Import CSV Collection</h2>
           </div>
           <button
             onClick={onClose}
@@ -312,10 +321,10 @@ Tarmogoyf,fut,2,mint,true,69daba76-96e8-4bcc-ab79-2da3829d4df0,120.00,2024-01-20
                 <div className="border-2 border-dashed border-border rounded-lg p-8">
                   <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-foreground mb-2">
-                    Upload CardSphere CSV File
+                    Upload CSV Collection File
                   </h3>
                   <p className="text-muted-foreground mb-4">
-                    Select a CSV file exported from CardSphere or similar format
+                    Supports CardSphere, Moxfield, Archidekt, MTGA, and other common CSV formats
                   </p>
                   <input
                     ref={fileInputRef}
@@ -334,19 +343,40 @@ Tarmogoyf,fut,2,mint,true,69daba76-96e8-4bcc-ab79-2da3829d4df0,120.00,2024-01-20
               </div>
 
               <div className="bg-accent rounded-lg p-4">
-                <h4 className="font-medium text-foreground mb-2">Expected CSV Format:</h4>
+                <h4 className="font-medium text-foreground mb-2">Supported Formats & Samples:</h4>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Your CSV should include columns for: name, set (optional), quantity, condition, foil. 
-                  If your CSV includes a "Scryfall ID" column (like CardSphere exports), that will be used for more accurate card matching. 
-                  Purchase prices will be automatically fetched from Scryfall's current market prices.
+                  Automatic format detection supports major collection platforms. Download sample templates:
                 </p>
-                <button
-                  onClick={downloadSampleCSV}
-                  className="flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Download Sample CSV</span>
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => downloadSampleCSV('cardsphere')}
+                    className="flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors text-sm"
+                  >
+                    <Download className="h-3 w-3" />
+                    <span>CardSphere</span>
+                  </button>
+                  <button
+                    onClick={() => downloadSampleCSV('moxfield')}
+                    className="flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors text-sm"
+                  >
+                    <Download className="h-3 w-3" />
+                    <span>Moxfield</span>
+                  </button>
+                  <button
+                    onClick={() => downloadSampleCSV('archidekt')}
+                    className="flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors text-sm"
+                  >
+                    <Download className="h-3 w-3" />
+                    <span>Archidekt</span>
+                  </button>
+                  <button
+                    onClick={() => downloadSampleCSV('mtga')}
+                    className="flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors text-sm"
+                  >
+                    <Download className="h-3 w-3" />
+                    <span>MTGA</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -354,9 +384,16 @@ Tarmogoyf,fut,2,mint,true,69daba76-96e8-4bcc-ab79-2da3829d4df0,120.00,2024-01-20
           {/* File Selected */}
           {file && !importing && results.length === 0 && (
             <div className="space-y-4">
-              <div className="flex items-center space-x-2 text-foreground">
-                <FileText className="h-5 w-5" />
-                <span>Selected: {file.name}</span>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2 text-foreground">
+                  <FileText className="h-5 w-5" />
+                  <span>Selected: {file.name}</span>
+                </div>
+                {detectedFormat && (
+                  <div className="text-sm text-muted-foreground">
+                    Detected format: <span className="font-medium text-foreground">{detectedFormat}</span>
+                  </div>
+                )}
               </div>
               <div className="flex space-x-3">
                 <button

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Trash2, TrendingUp, TrendingDown, MoreVertical } from 'lucide-react';
 import { Portfolio } from '@/lib/types';
-import { deletePortfolio } from '@/lib/utils/localStorage';
+import { deletePortfolio } from '@/lib/storage';
 
 interface PortfolioListProps {
   portfolios: Portfolio[];

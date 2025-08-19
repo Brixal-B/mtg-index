@@ -18,7 +18,7 @@ import {
   Monitor
 } from 'lucide-react';
 import { UserPreferences, PriceAlert } from '@/lib/types';
-import { getPreferences, savePreferences } from '@/lib/utils/localStorage';
+import { getPreferences, savePreferences } from '@/lib/storage';
 import { useTheme } from '@/lib/contexts/ThemeContext';
 import { SettingsSection } from './components/SettingsSection';
 import { SettingsField } from './components/SettingsField';
@@ -61,6 +61,7 @@ export default function SettingsPage() {
           defaultCurrency: 'usd',
           showFoilPrices: true,
           defaultCondition: 'near_mint',
+          defaultBuyPricePercentage: 90,
           priceAlerts: [],
           dashboardLayout: ['portfolio', 'analytics', 'cards', 'admin'],
           theme: 'dark',
@@ -107,6 +108,7 @@ export default function SettingsPage() {
       defaultCurrency: 'usd',
       showFoilPrices: true,
       defaultCondition: 'near_mint',
+      defaultBuyPricePercentage: 90,
       priceAlerts: [],
       dashboardLayout: ['portfolio', 'analytics', 'cards', 'admin'],
       theme: 'dark',

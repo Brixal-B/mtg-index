@@ -16,7 +16,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import { SystemMetrics } from '@/lib/types';
-import { getPortfolios, getStorageUsage } from '@/lib/utils/localStorage';
+import { getPortfolios, getStorageUsage } from '@/lib/storage';
 import { SystemHealthChart } from './components/SystemHealthChart';
 import { PerformanceMetrics } from './components/PerformanceMetrics';
 import { ApiStatusGrid } from './components/ApiStatusGrid';
