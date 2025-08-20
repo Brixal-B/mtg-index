@@ -15,7 +15,7 @@ import {
   Wifi,
   HardDrive
 } from 'lucide-react';
-import { SystemMetrics } from '@/lib/types';
+import { SystemMetrics } from '@/lib/types/all';
 import { getPortfolios, getStorageUsage } from '@/lib/storage';
 import { SystemHealthChart } from './components/SystemHealthChart';
 import { PerformanceMetrics } from './components/PerformanceMetrics';

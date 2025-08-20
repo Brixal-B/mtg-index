@@ -8,7 +8,7 @@
  * - Data import/export functionality
  */
 
-import { Portfolio, UserPreferences, MTGJSONCardPrices, MTGJSONCard, PriceHistory } from '@/lib/types';
+import { Portfolio, UserPreferences, MTGJSONCardPrices, MTGJSONCard, PriceHistory } from '@/lib/types/all';
 
 // ============================================================================
 // STORAGE KEYS AND CONFIGURATION

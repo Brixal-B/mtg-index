@@ -4,14 +4,7 @@ import { useState, useEffect } from 'react';
 import { HardDrive, AlertTriangle, Database, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '@/app/components/Modal';
 import { getStorageUsage, clearAllData } from '@/lib/storage';
-
-interface StorageBreakdown {
-  portfolios: number;
-  watchlist: number;
-  preferences: number;
-  priceAlerts: number;
-  other: number;
-}
+import { StorageBreakdown } from '@/lib/types/components';
 
 export function StorageMonitor() {
   const [storageData, setStorageData] = useState<{

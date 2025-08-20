@@ -2,22 +2,15 @@
 
 import { useState } from 'react';
 import { Wallet } from 'lucide-react';
-import { Portfolio } from '@/lib/types';
+import { Portfolio, PortfolioModalProps } from '@/lib/types/all';
 import { savePortfolio } from '@/lib/storage';
 import { Modal } from '@/app/components/Modal';
-// import { generateUUID } from '@/lib/utils/uuid';
-
-interface CreatePortfolioModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onPortfolioCreated: (portfolio: Portfolio) => void;
-}
 
 export function CreatePortfolioModal({
   isOpen,
   onClose,
-  onPortfolioCreated,
-}: CreatePortfolioModalProps) {
+  onCreated: onPortfolioCreated,
+}: PortfolioModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);

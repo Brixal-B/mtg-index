@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { X, Star, Plus, DollarSign, TrendingUp, Calendar, Palette, Zap } from 'lucide-react';
-import { MTGCard } from '@/lib/types';
+import { MTGCard } from '@/lib/types/all';
 import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '@/lib/storage';
 import { getPriceHistory } from '@/lib/api/scryfall';
 import { PriceHistoryChart } from '@/app/components/PriceHistoryChart';

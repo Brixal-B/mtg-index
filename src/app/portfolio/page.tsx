@@ -203,7 +203,7 @@ export default function PortfolioPage() {
       <CreatePortfolioModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onPortfolioCreated={handlePortfolioCreated}
+        onCreated={handlePortfolioCreated}
       />
     </div>
   );
