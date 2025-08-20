@@ -10,7 +10,7 @@ import {
 import type { CardLookupParams } from '@/lib/api';
 
 // Dynamic route for individual card lookup
-const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic";
 // We need to handle the Next.js params structure
 export async function GET(
   request: NextRequest,
