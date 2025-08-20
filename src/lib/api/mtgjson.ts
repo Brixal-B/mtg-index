@@ -209,7 +209,7 @@ async function loadAllPricesData(): Promise<Record<string, MTGJSONCardPrices> | 
     
     return null;
 
-    // TODO: Re-enable when we have proper chunked downloading
+    // Note: Chunked downloading disabled for current implementation
     // console.log('Fetching fresh AllPrices data from MTGJSON...');
     // const response = await rateLimitedFetch('https://mtgjson.com/api/v5/AllPrices.json');
     // 

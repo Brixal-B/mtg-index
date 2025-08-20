@@ -44,7 +44,7 @@ class AllPrintingsStorage {
    * Store AllPrintings data in compressed chunks
    */
   async storeAllPrintings(allPrintingsData: any): Promise<void> {
-    console.log('Starting AllPrintings storage process...');
+    // Starting AllPrintings storage process
     
     try {
       const metadata: AllPrintingsMetadata = {
@@ -100,20 +100,20 @@ class AllPrintingsStorage {
       }
 
       // Store chunks in batches to avoid overwhelming IndexedDB
-      console.log(`Storing ${chunks.length} chunks...`);
+      // Storing chunks in batches
       await this.storeChunksInBatches(chunks);
       
       // Store metadata
       await this.storeMetadata(metadata);
       
-      console.log(`Successfully stored AllPrintings data: ${metadata.totalCards} cards in ${metadata.totalSets} sets`);
+      // AllPrintings data stored successfully
     } catch (error) {
       console.error('Failed to store AllPrintings data:', error);
       
       // Clean up any partially stored data on failure
       try {
         await this.clearAllData();
-        console.log('Cleaned up partially stored data due to error');
+        // Cleaned up partially stored data
       } catch (cleanupError) {
         console.error('Failed to cleanup after storage error:', cleanupError);
       }
@@ -262,7 +262,7 @@ class AllPrintingsStorage {
       // Also clear any old localStorage data from previous versions
       this.clearLegacyLocalStorageData();
       
-      console.log('All AllPrintings data cleared');
+      // All AllPrintings data cleared
     } catch (error) {
       console.error('Failed to clear AllPrintings data:', error);
       throw error;

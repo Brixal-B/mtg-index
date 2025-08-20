@@ -185,7 +185,7 @@ export class PortfolioTimelineService {
         // Try to get historical price for this date
         let priceAtDate = card.prices.usd || 0;
         
-        // TODO: In full implementation, we'd fetch historical price for this specific date
+        // Note: In full implementation, would fetch historical price for this specific date
         // For PoC, we'll use current price (this would be enhanced with real MTGJSON data)
         
         portfolioValue += priceAtDate * position.quantity;

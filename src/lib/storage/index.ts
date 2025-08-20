@@ -828,7 +828,7 @@ class UnifiedStorageManager {
       // Also try to clear IndexedDB
       try {
         const deleteReq = indexedDB.deleteDatabase('MTGJSONStorage');
-        deleteReq.onsuccess = () => console.log('IndexedDB cleared');
+        deleteReq.onsuccess = () => {}; // IndexedDB cleared
         deleteReq.onerror = () => console.error('Failed to clear IndexedDB');
       } catch (error) {
         console.error('Error clearing IndexedDB:', error);

@@ -71,7 +71,7 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
 
   const handleAddToPortfolio = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: Implement add to portfolio functionality
+    // Add to portfolio functionality - would open portfolio selection modal
     console.log('Add to portfolio:', card.name);
   };
 
