@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Wallet } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { Portfolio } from '@/lib/types';
 import { savePortfolio } from '@/lib/storage';
+import { Modal } from '@/app/components/Modal';
 // import { generateUUID } from '@/lib/utils/uuid';
 
 interface CreatePortfolioModalProps {
@@ -60,12 +61,6 @@ export function CreatePortfolioModal({
     }
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   const handleClose = () => {
     setName('');
     setDescription('');
@@ -73,30 +68,15 @@ export function CreatePortfolioModal({
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div 
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={handleBackdropClick}
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Create New Portfolio"
+      icon={Wallet}
+      size="sm"
     >
-      <div className="bg-card border border-border rounded-xl max-w-md w-full">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <div className="flex items-center space-x-2">
-            <Wallet className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Create New Portfolio</h2>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 hover:bg-accent rounded-lg transition-colors"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
               <p className="text-sm text-destructive">{error}</p>
@@ -153,9 +133,8 @@ export function CreatePortfolioModal({
               {loading ? 'Creating...' : 'Create Portfolio'}
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { HardDrive, AlertTriangle, Database, Trash2 } from 'lucide-react';
+import { ConfirmDialog } from '@/app/components/Modal';
 import { getStorageUsage, clearAllData } from '@/lib/storage';
 
 interface StorageBreakdown {
@@ -237,36 +238,16 @@ export function StorageMonitor() {
       </div>
 
       {/* Clear Data Confirmation Dialog */}
-      {showClearDialog && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center space-x-2 mb-4">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <h3 className="text-lg font-semibold text-foreground">Clear All Data</h3>
-            </div>
-            
-            <p className="text-muted-foreground mb-6">
-              This will permanently delete all portfolios, watchlists, preferences, and other 
-              application data. This action cannot be undone.
-            </p>
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowClearDialog(false)}
-                className="flex-1 px-4 py-2 border border-border text-foreground rounded-lg hover:bg-accent transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClearData}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Clear All Data
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={showClearDialog}
+        onClose={() => setShowClearDialog(false)}
+        onConfirm={handleClearData}
+        title="Clear All Data"
+        message="This will permanently delete all portfolios, watchlists, preferences, and other application data. This action cannot be undone."
+        confirmText="Clear All Data"
+        icon={AlertTriangle}
+        destructive
+      />
     </div>
   );
 }
