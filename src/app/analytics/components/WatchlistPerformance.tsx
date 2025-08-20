@@ -239,12 +239,12 @@ export function WatchlistPerformance({ timeframe }: WatchlistPerformanceProps) {
                 <div className={`text-sm font-medium ${
                   isPositive ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {isPositive ? '+' : ''}${item.priceChange.toFixed(2)}
+                  {isPositive ? '+' : ''}${(Number(item.priceChange) || 0).toFixed(2)}
                 </div>
                 <div className={`text-xs ${
                   isPositive ? 'text-green-600' : 'text-red-600'
                 }`}>
-                  {isPositive ? '+' : ''}{item.priceChangePercent.toFixed(1)}%
+                  {isPositive ? '+' : ''}{(Number(item.priceChangePercent) || 0).toFixed(1)}%
                 </div>
               </div>
 

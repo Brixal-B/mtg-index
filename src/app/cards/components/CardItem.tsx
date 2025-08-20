@@ -19,14 +19,18 @@ const rarityColors = {
   uncommon: 'border-gray-600 bg-gray-100',
   rare: 'border-yellow-500 bg-yellow-50',
   mythic: 'border-orange-500 bg-orange-50',
-};
+  special: 'border-purple-500 bg-purple-50',
+  bonus: 'border-blue-500 bg-blue-50',
+} as const;
 
 const rarityTextColors = {
   common: 'text-gray-600',
   uncommon: 'text-gray-700',
   rare: 'text-yellow-600',
   mythic: 'text-orange-600',
-};
+  special: 'text-purple-600',
+  bonus: 'text-blue-600',
+} as const;
 
 const manaCostSymbols: Record<string, string> = {
   '{W}': '⚪',
@@ -52,10 +56,15 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
   const [isWatched, setIsWatched] = useState(isInWatchlist(card.id));
   const [imageError, setImageError] = useState(false);
   
-  // Fetch price trends for this card
-  const { trends, loading: trendsLoading } = usePriceTrends(card.id, {
-    enabled: true // Enable trend fetching for all cards
+  // Fetch price trends for this card with error handling
+  const { trends, loading: trendsLoading, error: trendsError } = usePriceTrends(card.id, {
+    enabled: true // Re-enabled now that rarity issue is fixed
   });
+  
+  // Debug logging for development
+  if (process.env.NODE_ENV === 'development' && trendsError) {
+    console.warn('Price trends error for card:', card.name, trendsError);
+  }
 
   const handleWatchlistToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -82,17 +91,62 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
   };
 
   // Enhanced price display with foil fallback
-  const regularPrice = card.prices.usd || card.prices.eur;
-  const foilPrice = card.prices.usdFoil || card.prices.eurFoil;
+  const parsePrice = (priceValue: any): number => {
+    if (priceValue === null || priceValue === undefined) return 0;
+    const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : Number(priceValue);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  // Safe access to card prices with fallbacks
+  const safeCard = {
+    ...card,
+    prices: card.prices || {},
+    name: card.name || 'Unknown Card',
+    setName: card.setName || 'Unknown Set',
+    setCode: card.setCode || 'UNK',
+    rarity: card.rarity || 'common'
+  };
+
+  const regularPriceUsd = parsePrice(safeCard.prices?.usd);
+  const regularPriceEur = parsePrice(safeCard.prices?.eur);
+  const foilPriceUsd = parsePrice(safeCard.prices?.usdFoil);
+  const foilPriceEur = parsePrice(safeCard.prices?.eurFoil);
   
   let price = 0;
   let isUsingFoilPrice = false;
   
-  if (regularPrice && regularPrice > 0) {
-    price = regularPrice;
-  } else if (foilPrice && foilPrice > 0) {
-    price = foilPrice;
+  // Prefer USD prices, fallback to EUR
+  if (regularPriceUsd > 0) {
+    price = regularPriceUsd;
+  } else if (regularPriceEur > 0) {
+    price = regularPriceEur;
+  } else if (foilPriceUsd > 0) {
+    price = foilPriceUsd;
     isUsingFoilPrice = true;
+  } else if (foilPriceEur > 0) {
+    price = foilPriceEur;
+    isUsingFoilPrice = true;
+  }
+  
+  // Extra safety: ensure price is always a valid number
+  price = Number(price) || 0;
+  
+  // Debug logging for development
+  if (process.env.NODE_ENV === 'development' && (!price || isNaN(price) || price < 0)) {
+    console.warn('CardItem price issue:', {
+      cardName: safeCard.name,
+      cardId: card.id,
+      originalPrices: card.prices,
+      originalPricesType: typeof card.prices,
+      usdType: typeof card.prices?.usd,
+      usdValue: card.prices?.usd,
+      regularPriceUsd,
+      regularPriceEur,
+      foilPriceUsd,
+      foilPriceEur,
+      finalPrice: price,
+      finalPriceType: typeof price
+    });
   }
   
   const formattedPrice = price > 0 ? `$${price.toFixed(2)}` : 'N/A';
@@ -100,7 +154,7 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
   return (
     <div
       className={`group relative bg-card border rounded-lg overflow-hidden hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer ${
-        rarityColors[card.rarity]
+        rarityColors[safeCard.rarity as keyof typeof rarityColors] || rarityColors.common
       }`}
       onClick={handleCardClick}
       role="button"
@@ -115,10 +169,10 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
     >
       {/* Card Image */}
       <div className="aspect-[5/7] relative bg-muted">
-        {card.imageUrl && !imageError ? (
+        {safeCard.imageUrl && !imageError ? (
           <Image
-            src={card.imageUrl}
-            alt={card.name}
+            src={safeCard.imageUrl}
+            alt={safeCard.name}
             fill
             className="object-cover"
             onError={() => setImageError(true)}
@@ -127,8 +181,8 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
         ) : (
           <div className="flex items-center justify-center h-full bg-muted text-muted-foreground">
             <div className="text-center p-4">
-              <div className="text-sm font-medium mb-1">{card.name}</div>
-              <div className="text-xs">{card.setCode.toUpperCase()}</div>
+              <div className="text-sm font-medium mb-1">{safeCard.name}</div>
+              <div className="text-xs">{safeCard.setCode.toUpperCase()}</div>
             </div>
           </div>
         )}
@@ -179,34 +233,34 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
       <div className="p-3 space-y-2">
         <div className="space-y-1">
           <h3 className="font-medium text-foreground text-sm leading-tight line-clamp-2 truncate">
-            {card.name}
+            {safeCard.name}
           </h3>
           <div className="text-xs text-muted-foreground">
-            {card.setName} • <span className={rarityTextColors[card.rarity]}>{card.rarity}</span>
+            {safeCard.setName} • <span className={rarityTextColors[safeCard.rarity as keyof typeof rarityTextColors] || rarityTextColors.common}>{safeCard.rarity}</span>
           </div>
         </div>
 
         {/* Mana Cost */}
-        {card.manaCost && (
+        {safeCard.manaCost && (
           <div className="text-sm">
             <span className="text-muted-foreground">Mana: </span>
-            <span className="font-mono">{formatManaCost(card.manaCost)}</span>
+            <span className="font-mono">{formatManaCost(safeCard.manaCost)}</span>
           </div>
         )}
 
         {/* Power/Toughness for creatures */}
-        {card.power && card.toughness && (
+        {safeCard.power && safeCard.toughness && (
           <div className="text-sm">
             <span className="text-muted-foreground">P/T: </span>
-            <span className="font-medium">{card.power}/{card.toughness}</span>
+            <span className="font-medium">{safeCard.power}/{safeCard.toughness}</span>
           </div>
         )}
 
         {/* Loyalty for planeswalkers */}
-        {card.loyalty && (
+        {safeCard.loyalty && (
           <div className="text-sm">
             <span className="text-muted-foreground">Loyalty: </span>
-            <span className="font-medium">{card.loyalty}</span>
+            <span className="font-medium">{safeCard.loyalty}</span>
           </div>
         )}
 
@@ -226,13 +280,13 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
           
           <div className="flex items-center space-x-1">
             {/* Price trend indicator */}
-                      {!trendsLoading && trends?.trend7d && (
-            <CompactPriceTrend 
-              trend={trends.trend7d} 
-              timeframe="7d" 
-              className="opacity-80" 
-            />
-          )}
+            {!trendsLoading && trends?.trend7d && (
+              <CompactPriceTrend 
+                trend={trends.trend7d} 
+                timeframe="7d" 
+                className="opacity-80" 
+              />
+            )}
             
             {isWatched && (
               <Star className="h-4 w-4 text-yellow-500 fill-current" />
@@ -241,11 +295,11 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
         </div>
 
         {/* Price trend details (for cards with significant changes) */}
-        {!trendsLoading && trends?.trend7d && Math.abs(trends.trend7d.changePercent) >= 10 && (
+        {!trendsLoading && trends?.trend7d && trends.trend7d.changePercent && Math.abs(Number(trends.trend7d.changePercent) || 0) >= 10 && (
           <div className="text-xs text-muted-foreground">
             <span className={trends.trend7d.direction === 'up' ? 'text-green-600' : 'text-red-600'}>
               {trends.trend7d.direction === 'up' ? '↗' : '↘'} 
-              {Math.abs(trends.trend7d.changePercent).toFixed(0)}% this week
+              {Math.abs(Number(trends.trend7d.changePercent) || 0).toFixed(0)}% this week
             </span>
             {trends.volatility?.volatilityLevel === 'high' && (
               <span className="ml-2 text-orange-600">• High volatility</span>
@@ -255,7 +309,7 @@ export function CardItem({ card, onClick, showActions = true }: CardItemProps) {
 
         {/* Type Line */}
         <div className="text-xs text-muted-foreground line-clamp-1">
-          {card.type}
+          {safeCard.type}
         </div>
       </div>
     </div>

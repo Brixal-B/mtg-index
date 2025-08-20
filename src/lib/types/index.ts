@@ -5,7 +5,7 @@ export interface MTGCard {
   manaCost?: string;
   convertedManaCost: number;
   type: string;
-  rarity: 'common' | 'uncommon' | 'rare' | 'mythic';
+  rarity: 'common' | 'uncommon' | 'rare' | 'mythic' | 'special' | 'bonus' | string;
   setCode: string;
   setName: string;
   number?: string;

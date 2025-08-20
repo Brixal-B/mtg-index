@@ -12,7 +12,8 @@ function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
 }
 import { X, Search, Plus } from 'lucide-react';
 import { MTGCard, PortfolioCard } from '@/lib/types';
-import { searchCards } from '@/lib/api/scryfall';
+// Using new unified API client
+// import { searchCards } from '@/lib/api/scryfall';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 import { ErrorMessage } from '@/app/components/ErrorMessage';
 import { CardItem } from '@/app/cards/components/CardItem';
@@ -61,6 +62,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard }: AddCardModalProps) 
       setError(null);
 
       try {
+        const { searchCards } = await import('@/lib/api/client');
         const result = await searchCards(query, { page: 1 });
         setSearchResults(result.cards.slice(0, 20)); // Limit to 20 results
       } catch (err) {
@@ -84,6 +86,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard }: AddCardModalProps) 
     setError(null);
 
     try {
+      const { searchCards } = await import('@/lib/api/client');
       const result = await searchCards(query, { page: 1 });
       setSearchResults(result.cards.slice(0, 20)); // Limit to 20 results
     } catch (err) {
@@ -267,7 +270,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard }: AddCardModalProps) 
                     <h3 className="font-semibold text-foreground">{selectedCard.name}</h3>
                     <p className="text-sm text-muted-foreground">{selectedCard.setName}</p>
                     <p className="text-sm text-muted-foreground">
-                      Current Price: ${selectedCard.prices.usd?.toFixed(2) || 'N/A'}
+                      Current Price: ${selectedCard.prices.usd ? Number(selectedCard.prices.usd).toFixed(2) : 'N/A'}
                     </p>
                   </div>
                   <button

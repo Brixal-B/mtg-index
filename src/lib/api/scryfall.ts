@@ -1,3 +1,22 @@
+/**
+ * @deprecated This file is deprecated. Use @/lib/api/client instead.
+ * 
+ * This legacy Scryfall client will be removed in a future version.
+ * Please migrate to the new unified API client which provides:
+ * - Better error handling
+ * - Consistent response format
+ * - TypeScript support
+ * - Server-side rate limiting
+ * - Unified caching strategy
+ * 
+ * Migration guide:
+ * - searchCards() -> import { searchCards } from '@/lib/api/client'
+ * - getCardSuggestions() -> import { getCardSuggestions } from '@/lib/api/client'
+ * - getCard() -> import { getCard } from '@/lib/api/client'
+ * - getRandomCards() -> import { getRandomCards } from '@/lib/api/client'
+ * - batchLookupCards() -> import { batchLookupCards } from '@/lib/api/client'
+ */
+
 import { MTGCard } from '@/lib/types';
 
 const SCRYFALL_API_BASE = 'https://api.scryfall.com';
@@ -92,9 +111,7 @@ function transformScryfallCard(scryfallCard: any): MTGCard {
     setCode: scryfallCard.set || '',
     number: scryfallCard.collector_number || '',
     artist: scryfallCard.artist || '',
-    rarity: (scryfallCard.rarity === 'mythic' ? 'mythic' : 
-             scryfallCard.rarity === 'rare' ? 'rare' : 
-             scryfallCard.rarity === 'uncommon' ? 'uncommon' : 'common') as 'common' | 'uncommon' | 'rare' | 'mythic',
+    rarity: scryfallCard.rarity || 'common',
     colors: scryfallCard.colors || [],
     colorIdentity: scryfallCard.color_identity || [],
     prices: {

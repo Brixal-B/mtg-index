@@ -1,10 +1,31 @@
 import { NextRequest } from 'next/server';
-import { proxyScryfallRequest, scryfallProxyConfigs } from '@/lib/api/scryfallProxy';
+import { 
+  createAutocompleteAPIHandler,
+  scryfallClient,
+  sanitizeString
+} from '@/lib/api';
+import type { AutocompleteParams } from '@/lib/api';
 
-// Required for static export
-export const dynamic = 'force-static';
-export const revalidate = 60; // Revalidate every minute
+// Dynamic route for autocomplete functionality  
+export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  return proxyScryfallRequest(request, scryfallProxyConfigs.autocomplete);
-}
+export const GET = createAutocompleteAPIHandler(async (params, request, context) => {
+  // Sanitize and validate autocomplete parameters
+  const autocompleteParams: AutocompleteParams = {
+    q: sanitizeString(params.q, 100),
+    include_extras: params.include_extras === 'true',
+  };
+
+  // Make request to Scryfall
+  const scryfallResponse = await scryfallClient.getAutocomplete(autocompleteParams);
+  
+  // Return the suggestions
+  return {
+    data: scryfallResponse.data || [],
+    suggestions: scryfallResponse.data || [], // Legacy compatibility
+  };
+}, {
+  requiredParams: ['q'],
+  cacheMaxAge: 60, // 1 minute
+  staleWhileRevalidate: 120, // 2 minutes
+});

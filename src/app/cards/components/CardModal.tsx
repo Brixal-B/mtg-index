@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { X, Star, Plus, DollarSign, TrendingUp, Calendar, Palette, Zap } from 'lucide-react';
 import { MTGCard } from '@/lib/types/all';
 import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '@/lib/storage';
-import { getPriceHistory } from '@/lib/api/scryfall';
+// Price history is now handled by MTGJSON integration
+// import { getPriceHistory } from '@/lib/api/scryfall';
 import { PriceHistoryChart } from '@/app/components/PriceHistoryChart';
 
 interface CardModalProps {
@@ -29,9 +30,25 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
   useEffect(() => {
     if (isOpen && card.id) {
       setLoadingHistory(true);
-      getPriceHistory(card.id)
-        .then(setPriceHistory)
-        .catch(console.error)
+      // Use MTGJSON integration for price history instead
+      import('@/lib/api/mtgjson')
+        .then(({ getPriceHistoryForCard }) => getPriceHistoryForCard(card))
+        .then((historyData) => {
+          if (historyData && historyData.prices) {
+            const formattedHistory = historyData.prices.map(price => ({
+              date: price.date,
+              price: price.price,
+              priceType: price.priceType as 'usd' | 'usdFoil' | 'eur' | 'eurFoil' | 'tix'
+            }));
+            setPriceHistory(formattedHistory);
+          } else {
+            setPriceHistory([]);
+          }
+        })
+        .catch((error) => {
+          console.warn('Price history not available:', error);
+          setPriceHistory([]);
+        })
         .finally(() => setLoadingHistory(false));
     }
   }, [isOpen, card.id]);
@@ -59,8 +76,15 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
 
   if (!isOpen) return null;
 
-  const price = card.prices.usd || card.prices.eur || 0;
-  const foilPrice = card.prices.usdFoil || card.prices.eurFoil || 0;
+  // Safe price parsing function
+  const parsePrice = (priceValue: any): number => {
+    if (priceValue === null || priceValue === undefined) return 0;
+    const parsed = typeof priceValue === 'string' ? parseFloat(priceValue) : Number(priceValue);
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  const price = parsePrice(card.prices?.usd) || parsePrice(card.prices?.eur) || 0;
+  const foilPrice = parsePrice(card.prices?.usdFoil) || parsePrice(card.prices?.eurFoil) || 0;
 
   // Calculate price trend (simplified)
   const priceChange = priceHistory.length >= 2 ? 
@@ -174,7 +198,7 @@ export function CardModal({ card, isOpen, onClose }: CardModalProps) {
                       priceChangePercent > 0 ? 'text-green-600' : 
                       priceChangePercent < 0 ? 'text-red-600' : 'text-muted-foreground'
                     }`}>
-                      {priceChangePercent > 0 ? '+' : ''}{priceChangePercent.toFixed(1)}%
+                      {priceChangePercent > 0 ? '+' : ''}{(Number(priceChangePercent) || 0).toFixed(1)}%
                     </div>
                   </div>
                 </div>

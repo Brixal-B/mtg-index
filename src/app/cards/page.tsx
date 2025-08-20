@@ -80,40 +80,63 @@ export default function CardsPage() {
     setError(null);
 
     try {
-      let result;
+      // Import the new client dynamically to avoid SSR issues
+      const { searchCards } = await import('@/lib/api/client');
       
-      // Use Next.js API routes for better performance and CORS handling
-      const searchQuery = query.trim() || buildAdvancedSearchQuery(searchFilters);
-      const params = new URLSearchParams();
-      params.set('q', searchQuery);
+      // Build the search query
+      const searchQuery = query.trim() || buildAdvancedSearchQuery(searchFilters) || '*';
       
-      if (searchFilters.sortBy) {
-        params.set('order', searchFilters.sortBy === 'price' ? 'usd' : searchFilters.sortBy);
-      }
-      if (searchFilters.sortOrder) {
-        params.set('dir', searchFilters.sortOrder);
-      }
-      params.set('page', page.toString());
-      
-      const response = await fetch(`/api/cards/search?${params}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Search failed with status ${response.status}`);
-      }
-      
-      result = await response.json();
+      // Use the new client with proper options
+      const response = await searchCards(searchQuery, {
+        page,
+        order: searchFilters.sortBy === 'price' ? 'usd' : searchFilters.sortBy,
+        dir: searchFilters.sortOrder,
+      });
+
+      // The response is now properly typed and structured
+      const cards = response.cards;
+      const totalCards = response.totalCards;
+      const hasMore = response.hasMore;
 
       if (append) {
-        setCards(prev => [...prev, ...result.cards]);
+        setCards(prev => [...(prev || []), ...cards]);
       } else {
-        setCards(result.cards);
+        setCards(cards);
       }
       
-      setTotalCards(result.totalCards);
-      setHasMore(result.hasMore);
+      setTotalCards(totalCards);
+      setHasMore(hasMore);
       setCurrentPage(page);
+
+      // Show warnings if any (new feature)
+      if (response.warnings && response.warnings.length > 0) {
+        console.warn('Search warnings:', response.warnings);
+      }
+
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to search cards';
+      let errorMessage = 'Failed to search cards';
+      
+      if (err instanceof Error && 'code' in err) {
+        // Handle our structured API errors
+        const apiError = err as any;
+        errorMessage = apiError.message;
+        
+        // Provide user-friendly messages for common errors
+        switch (apiError.code) {
+          case 'INVALID_SEARCH_QUERY':
+            errorMessage = 'Invalid search query. Please check your search terms and try again.';
+            break;
+          case 'SCRYFALL_RATE_LIMIT':
+            errorMessage = 'Too many requests. Please wait a moment and try again.';
+            break;
+          case 'SCRYFALL_ERROR':
+            errorMessage = 'Card database is temporarily unavailable. Please try again later.';
+            break;
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
       
       if (!append) {
@@ -184,7 +207,7 @@ export default function CardsPage() {
       {!error && (
         <SearchResults
           totalCards={totalCards}
-          currentCount={cards.length}
+          currentCount={cards?.length || 0}
           hasMore={hasMore}
           loading={loading}
           searchQuery={searchQuery}
@@ -192,16 +215,16 @@ export default function CardsPage() {
       )}
 
       {/* Loading Spinner for Initial Load */}
-      {loading && cards.length === 0 && (
+      {loading && (cards?.length || 0) === 0 && (
         <div className="flex justify-center py-12">
           <LoadingSpinner size="large" />
         </div>
       )}
 
       {/* Card Grid */}
-      {!loading || cards.length > 0 ? (
+      {!loading || (cards?.length || 0) > 0 ? (
         <CardGrid
-          cards={cards}
+          cards={cards || []}
           onLoadMore={handleLoadMore}
           hasMore={hasMore}
           loading={loading}
@@ -209,7 +232,7 @@ export default function CardsPage() {
       ) : null}
 
       {/* No Results */}
-      {!loading && !error && cards.length === 0 && (
+      {!loading && !error && (cards?.length || 0) === 0 && (
         <div className="text-center py-12 space-y-4">
           <Search className="h-16 w-16 text-muted-foreground mx-auto" />
           <h3 className="text-xl font-semibold text-foreground">No cards found</h3>
