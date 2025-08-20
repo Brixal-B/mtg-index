@@ -7,8 +7,54 @@ import { SearchResults } from './components/SearchResults';
 import { LoadingSpinner } from '@/app/components/LoadingSpinner';
 import { ErrorMessage } from '@/app/components/ErrorMessage';
 import { MTGCard, CardFilters } from '@/lib/types';
-import { searchCards, advancedSearch } from '@/lib/api/scryfall';
 import { Search } from 'lucide-react';
+
+// Helper function to build advanced search queries
+function buildAdvancedSearchQuery(filters: CardFilters): string {
+  const queryParts: string[] = [];
+  
+  if (filters.name) {
+    queryParts.push(`name:${filters.name}`);
+  }
+  
+  if (filters.colors && filters.colors.length > 0) {
+    const colorQuery = filters.colors.map(c => `c:${c}`).join(' ');
+    queryParts.push(`(${colorQuery})`);
+  }
+  
+  if (filters.rarity && filters.rarity.length > 0) {
+    const rarityQuery = filters.rarity.map(r => `r:${r}`).join(' OR ');
+    queryParts.push(`(${rarityQuery})`);
+  }
+  
+  if (filters.sets && filters.sets.length > 0) {
+    const setQuery = filters.sets.map(s => `s:${s}`).join(' OR ');
+    queryParts.push(`(${setQuery})`);
+  }
+  
+  if (filters.types && filters.types.length > 0) {
+    const typeQuery = filters.types.map(t => `t:${t}`).join(' OR ');
+    queryParts.push(`(${typeQuery})`);
+  }
+  
+  if (filters.minPrice !== undefined) {
+    queryParts.push(`usd>=${filters.minPrice}`);
+  }
+  
+  if (filters.maxPrice !== undefined) {
+    queryParts.push(`usd<=${filters.maxPrice}`);
+  }
+  
+  if (filters.minCmc !== undefined) {
+    queryParts.push(`cmc>=${filters.minCmc}`);
+  }
+  
+  if (filters.maxCmc !== undefined) {
+    queryParts.push(`cmc<=${filters.maxCmc}`);
+  }
+  
+  return queryParts.length > 0 ? queryParts.join(' ') : '*';
+}
 
 export default function CardsPage() {
   const [cards, setCards] = useState<MTGCard[]>([]);
@@ -36,21 +82,26 @@ export default function CardsPage() {
     try {
       let result;
       
-      if (query.trim()) {
-        // Use simple search for text queries
-        result = await searchCards(query, {
-          order: searchFilters.sortBy === 'price' ? 'usd' : searchFilters.sortBy as any,
-          dir: searchFilters.sortOrder,
-          page,
-        });
-      } else {
-        // Use advanced search for filters
-        result = await advancedSearch('', searchFilters, {
-          order: searchFilters.sortBy === 'price' ? 'usd' : searchFilters.sortBy as any,
-          dir: searchFilters.sortOrder,
-          page,
-        });
+      // Use Next.js API routes for better performance and CORS handling
+      const searchQuery = query.trim() || buildAdvancedSearchQuery(searchFilters);
+      const params = new URLSearchParams();
+      params.set('q', searchQuery);
+      
+      if (searchFilters.sortBy) {
+        params.set('order', searchFilters.sortBy === 'price' ? 'usd' : searchFilters.sortBy);
       }
+      if (searchFilters.sortOrder) {
+        params.set('dir', searchFilters.sortOrder);
+      }
+      params.set('page', page.toString());
+      
+      const response = await fetch(`/api/cards/search?${params}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Search failed with status ${response.status}`);
+      }
+      
+      result = await response.json();
 
       if (append) {
         setCards(prev => [...prev, ...result.cards]);
